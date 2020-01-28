@@ -34,6 +34,16 @@ function windowResized() {
 function draw() {
   background(250);
 
+  stroke(color(0, 0, 0));
+  strokeWeight(2.5);
+  noFill();
+  beginShape();
+  vertex(0, 0);
+  vertex(width, 0);
+  vertex(width, height);
+  vertex(0, height);
+  endShape(CLOSE);
+
   v.compute(points, width, height);
 
   if (v.edges) {
