@@ -13,8 +13,7 @@ function updateDimensions() {
 }
 
 function randomColor() {
-  let [r, g, b] = [random() * 255, random() * 255, random() * 255];
-  return color(r, g, b);
+  return color(random() * 255, random() * 255, random() * 255);
 }
 
 function setup() {
