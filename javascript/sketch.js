@@ -33,8 +33,8 @@ function windowResized() {
 
 function draw() {
   background(250);
-  translate(width / 4, height / 4);
-  scale(0.5, 0.5);
+  translate(width / 40, height / 40);
+  scale(0.95, 0.95);
 
   stroke(color(0, 0, 0));
   strokeWeight(2.5);
