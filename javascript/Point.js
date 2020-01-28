@@ -3,7 +3,7 @@ class Point {
     this.x = x;
     this.y = y;
 
-    this.polygon = null;
+    //this.polygon = null;
   }
   static distance(a, b) {
     return sqrt(sq(b.x - a.x) + sq(b.y - a.y));
@@ -11,8 +11,7 @@ class Point {
   distanceTo(other) {
     return Point.distance(this, other);
   }
-  draw(color) {
-    if (color) stroke(color);
+  draw() {
     point(this.x, this.y);
   }
 }

@@ -2,13 +2,13 @@ class VParabola {
   constructor(site) {
     this.site = site;
 
-    this.parent = null;
-    this._left = null;
-    this._right = null;
-
-    this.cirleEvent = null;
-
     this.isLeaf = this.site != null;
+
+    //this.parent = null;
+    //this._left = null;
+    //this._right = null;
+
+    //this.cirleEvent = null;
 
     //this.edge = null;
   }

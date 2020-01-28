@@ -6,11 +6,10 @@ class VEdge {
     this.left = left; // point on left
     this.right = right; // point on right
 
-    this.intersected = false;
-    this.iCounted = false;
-
-    this.neighbour = null;
+    //this.neighbour = null;
+    //this.isTrash = false;
   }
+
   static getIntersection(a, b) {
     let I = getLineIntersection(a.start, a.B, b.start, b.B);
 
@@ -51,6 +50,10 @@ class VEdge {
     let s = this.start;
     let e = this.end;
     if (!s || !e) return;
+    strokeWeight(2.5);
     line(s.x, s.y, e.x, e.y);
+    strokeWeight(10);
+    point(s.x, s.y);
+    point(e.x, e.y);
   }
 }

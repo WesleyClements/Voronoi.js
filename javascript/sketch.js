@@ -1,4 +1,4 @@
-const pointCount = 100;
+const pointCount = 20;
 const points = [];
 const pointColors = [];
 
@@ -25,6 +25,7 @@ function setup() {
     pointColors.push(randomColor());
   }
 }
+
 function windowResized() {
   updateDimensions();
   resizeCanvas(width, height);
@@ -38,13 +39,16 @@ function draw() {
   strokeWeight(2.5);
 
   if (v.edges) {
-    let lineColor = color(0, 0, 0);
-    stroke(lineColor);
+    stroke(color(0, 0, 0));
     v.edges.forEach(edge => edge.draw());
   }
 
-  strokeWeight(5);
-  points.forEach((point, i) => point.draw(pointColors[i]));
+  strokeWeight(10);
+  points.forEach((point, i) => {
+    stroke(pointColors[i]);
+    point.draw();
+  });
+  drawn = true;
 }
 
 function getMouseX() {

@@ -31,8 +31,9 @@ class Voronoi {
 
     if (p.length < 2) return;
 
+    let bounds = new AABB(0, 0, this.width, this.height);
+
     for (let i = 0; i < this.places.length; i++) {
-      this.places[i].polygon = new VPolygon();
       this.queue.enqueue(new VEvent(this.places[i], true));
     }
 
@@ -44,19 +45,26 @@ class Voronoi {
     }
 
     let finishEdge = n => {
+      const edge = n.edge;
       let mx =
-        n.edge.direction.x > 0.0
-          ? max(this.width, n.edge.start.x + 10)
-          : min(0.0, n.edge.start.x - 10);
-      n.edge.end = new Point(mx, n.edge.f * mx + n.edge.g);
+        edge.direction.x > 0.0
+          ? max(this.width, edge.start.x + 10)
+          : min(0.0, edge.start.x - 10);
+      edge.end = new Point(mx, edge.f * mx + edge.g);
 
       if (!n.left.isLeaf) finishEdge(n.left);
       if (!n.right.isLeaf) finishEdge(n.right);
     };
     finishEdge(this.root);
+
     this.edges.forEach(edge => {
-      if (edge.neighbour) edge.start = edge.neighbour.end;
+      if (edge.neighbour) {
+        edge.start = edge.neighbour.end;
+        edge.neighbour.isTrash = true;
+      }
+      if (!bounds.contains(edge)) edge.isTrash = true;
     });
+    this.edges = this.edges.filter(edge => !edge.isTrash);
   }
 
   insertParabola(point) {
@@ -127,17 +135,10 @@ class Voronoi {
       p2.cirleEvent = null;
     }
 
-    let p = new Point(e.point.x, p1.evaluateAt(e.point.x, this.ly));
+    let point = new Point(e.point.x, p1.evaluateAt(e.point.x, this.ly));
 
-    if (p0.site.polygon.last == p1.site.polygon.first)
-      p1.site.polygon.addLeft(p);
-    else p1.site.polygon.addRight(p);
-
-    p0.site.polygon.addRight(p);
-    p2.site.polygon.addLeft(p);
-
-    xl.edge.end = p;
-    xr.edge.end = p;
+    xl.edge.end = point;
+    xr.edge.end = point;
 
     let higher;
     let parent = p1.parent;
@@ -147,7 +148,7 @@ class Voronoi {
       parent = parent.parent;
     }
 
-    higher.edge = new VEdge(p, p0.site, p2.site);
+    higher.edge = new VEdge(point, p0.site, p2.site);
     this.edges.push(higher.edge);
 
     let gparent = p1.parent.parent;
