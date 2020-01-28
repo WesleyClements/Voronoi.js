@@ -33,18 +33,6 @@ function windowResized() {
 
 function draw() {
   background(250);
-  translate(width / 40, height / 40);
-  scale(0.95, 0.95);
-
-  stroke(color(0, 0, 0));
-  strokeWeight(2.5);
-  noFill();
-  beginShape();
-  vertex(0, 0);
-  vertex(width, 0);
-  vertex(width, height);
-  vertex(0, height);
-  endShape(CLOSE);
 
   v.compute(points, width, height);
 
@@ -54,8 +42,12 @@ function draw() {
     v.edges.forEach(edge => edge.draw());
   }
 
-  strokeWeight(10);
   points.forEach((point, i) => {
+    /*strokeWeight(1);
+    stroke(color(0, 0, 0));
+    fill(pointColors[i]);
+    v.polygons[i].draw();*/
+    strokeWeight(10);
     stroke(pointColors[i]);
     point.draw();
   });

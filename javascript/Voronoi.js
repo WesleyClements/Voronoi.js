@@ -34,6 +34,7 @@ class Voronoi {
     let bounds = new AABB(0, 0, this.width, this.height);
 
     for (let i = 0; i < this.places.length; i++) {
+      this.places[i].polygon = new VPolygon();
       this.queue.enqueue(new VEvent(this.places[i], true));
     }
 
@@ -67,6 +68,44 @@ class Voronoi {
     this.edges = this.edges.filter(edge => !edge.isTrash);
 
     this.edges.forEach(edge => bounds.constrain(edge));
+
+    /*this.edges.forEach(edge => {
+      edge.left.polygon.add(edge.start);
+      edge.left.polygon.add(edge.end);
+      edge.right.polygon.add(edge.start);
+      edge.right.polygon.add(edge.end);
+    });
+    const findClosestPoint = (vertex, points) => {
+      let closest = [];
+      let minDistance = Number.POSITIVE_INFINITY;
+      points.forEach(point => {
+        let d = vertex.distanceTo(point);
+        if (d > minDistance) return;
+        if (d === minDistance) {
+          closest.push(point);
+        } else {
+          closest = [point];
+          minDistance = d;
+        }
+      });
+      return closest;
+    }
+    findClosestPoint(new Point(0, 0), this.places).forEach(point =>
+      point.polygon.add(new Point(0, 0)),
+    );
+    findClosestPoint(
+      new Point(0, this.height),
+      this.places,
+    ).forEach(point => point.polygon.add(new Point(0, this.height)));
+    findClosestPoint(
+      new Point(this.width, 0),
+      this.places,
+    ).forEach(point => point.polygon.add(new Point(this.width, 0)));
+    findClosestPoint(
+      new Point(this.width, this.height),
+      this.places,
+    ).forEach(point => point.polygon.add(new Point(this.width, this.height)));
+    this.polygons.forEach(polygon => polygon.sort());*/
   }
 
   insertParabola(point) {
@@ -102,7 +141,6 @@ class Voronoi {
     par.left.right = new VParabola(point);
     par.isLeaf = false;
 
-    // add edges
     {
       let start = new Point(point.x, par.evaluateAt(point.x, this.ly));
 

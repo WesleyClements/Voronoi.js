@@ -30,12 +30,11 @@ class VPolygon {
   }
 
   add(p) {
-    this.vertices.push(p);
+    if (this.vertices.every(v => v.x !== p.x || v.y !== p.y))
+      this.vertices.push(p);
   }
 
   sort() {
-    console.log('Sorting...');
-    const before = Array.from(this.vertices);
     const center = this.center;
     this.vertices.sort((a, b) => {
       if (a.x - center.x >= 0 && b.x - center.x < 0) return 1;
@@ -62,24 +61,9 @@ class VPolygon {
         (b.y - center.y) * (b.y - center.y);
       return d1 > d2 ? 1 : -1;
     });
-    let changed = false;
-    for (let i = 0; i < this.size; ++i) {
-      if (before[i] != this.vertices[i]) {
-        changed = true;
-        break;
-      }
-    }
-    if (changed) {
-      console.log('Changed');
-      this.changed = true;
-      for (let i = 0; i < this.size; ++i) {
-        console.log(before[i], ' | ', this.vertices[i]);
-      }
-    }
   }
 
   draw() {
-    if (this.changed) stroke(color(255, 0, 0));
     beginShape();
     this.vertices.forEach(v => vertex(v.x, v.y));
     endShape(CLOSE);
