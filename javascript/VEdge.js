@@ -50,10 +50,6 @@ class VEdge {
     let s = this.start;
     let e = this.end;
     if (!s || !e) return;
-    strokeWeight(2.5);
     line(s.x, s.y, e.x, e.y);
-    strokeWeight(10);
-    point(s.x, s.y);
-    point(e.x, e.y);
   }
 }

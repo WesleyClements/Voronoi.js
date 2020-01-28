@@ -65,6 +65,8 @@ class Voronoi {
       if (!bounds.contains(edge)) edge.isTrash = true;
     });
     this.edges = this.edges.filter(edge => !edge.isTrash);
+
+    this.edges.forEach(edge => bounds.constrain(edge));
   }
 
   insertParabola(point) {

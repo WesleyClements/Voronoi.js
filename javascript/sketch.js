@@ -33,12 +33,23 @@ function windowResized() {
 
 function draw() {
   background(250);
+  translate(width / 4, height / 4);
+  scale(0.5, 0.5);
+
+  stroke(color(0, 0, 0));
+  strokeWeight(2.5);
+  noFill();
+  beginShape();
+  vertex(0, 0);
+  vertex(width, 0);
+  vertex(width, height);
+  vertex(0, height);
+  endShape(CLOSE);
 
   v.compute(points, width, height);
 
-  strokeWeight(2.5);
-
   if (v.edges) {
+    strokeWeight(2.5);
     stroke(color(0, 0, 0));
     v.edges.forEach(edge => edge.draw());
   }
@@ -48,7 +59,6 @@ function draw() {
     stroke(pointColors[i]);
     point.draw();
   });
-  drawn = true;
 }
 
 function getMouseX() {
