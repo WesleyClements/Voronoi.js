@@ -30,8 +30,7 @@ class VPolygon {
   }
 
   add(p) {
-    if (this.vertices.every(v => v.x !== p.x || v.y !== p.y))
-      this.vertices.push(p);
+    if (this.vertices.every(v => v.x !== p.x || v.y !== p.y)) this.vertices.push(p);
   }
 
   sort() {
@@ -45,20 +44,14 @@ class VPolygon {
       }
 
       // compute the cross product of vectors (center -> a) x (center -> b)
-      let det =
-        (a.x - center.x) * (b.y - center.y) -
-        (b.x - center.x) * (a.y - center.y);
+      let det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
       if (det < 0) return 1;
       if (det > 0) return -1;
 
       // points a and b are on the same line from the center
       // check which point is closer to the center
-      let d1 =
-        (a.x - center.x) * (a.x - center.x) +
-        (a.y - center.y) * (a.y - center.y);
-      let d2 =
-        (b.x - center.x) * (b.x - center.x) +
-        (b.y - center.y) * (b.y - center.y);
+      let d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
+      let d2 = (b.x - center.x) * (b.x - center.x) + (b.y - center.y) * (b.y - center.y);
       return d1 > d2 ? 1 : -1;
     });
   }
@@ -69,3 +62,4 @@ class VPolygon {
     endShape(CLOSE);
   }
 }
+z;

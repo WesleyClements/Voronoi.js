@@ -47,10 +47,7 @@ class Voronoi {
 
     let finishEdge = n => {
       const edge = n.edge;
-      let mx =
-        edge.direction.x > 0.0
-          ? max(this.width, edge.start.x + 10)
-          : min(0.0, edge.start.x - 10);
+      let mx = edge.direction.x > 0.0 ? max(this.width, edge.start.x + 10) : min(0.0, edge.start.x - 10);
       edge.end = new Point(mx, edge.f * mx + edge.g);
 
       if (!n.left.isLeaf) finishEdge(n.left);
@@ -122,9 +119,7 @@ class Voronoi {
 
       let start = new Point((point.x + firstPoint.x) / 2, this.height);
       this.root.edge =
-        point.x > firstPoint.x
-          ? new VEdge(start, firstPoint, point)
-          : new VEdge(start, point, firstPoint);
+        point.x > firstPoint.x ? new VEdge(start, firstPoint, point) : new VEdge(start, point, firstPoint);
       this.edges.push(this.root.edge);
       return;
     }
