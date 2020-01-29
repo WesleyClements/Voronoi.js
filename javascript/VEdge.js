@@ -7,7 +7,6 @@ class VEdge {
     this.right = right; // point on right
 
     //this.neighbour = null;
-    //this.isTrash = false;
   }
 
   static getIntersection(a, b) {

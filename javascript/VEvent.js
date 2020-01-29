@@ -4,7 +4,8 @@ class VEvent {
     this.isPointEvent = pe;
     this.y = point.y;
 
-    this.arch = null;
+    //this.arch = null;
+    this.valid = true;
   }
 
   static compare(a, b) {

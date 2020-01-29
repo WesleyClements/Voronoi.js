@@ -1,5 +1,5 @@
 class AABB {
-  constructor(x0, y0, x1, y1) {
+  constructor(x0 = 0, y0 = 0, x1 = 0, y1 = 0) {
     this.x0 = x0;
     this.y0 = y0;
     this.x1 = x1;

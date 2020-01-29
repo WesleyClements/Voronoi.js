@@ -15,11 +15,6 @@ class VQueue {
     return this._q.pop();
   }
 
-  remove(e) {
-    let i = this._q.findIndex(event => event == e);
-    this._q.splice(i, 1);
-  }
-
   clear() {
     this._q = [];
   }

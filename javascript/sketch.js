@@ -1,15 +1,16 @@
-const pointCount = 20;
+const pointCount = 5;
 const points = [];
 const pointColors = [];
-
-const v = new Voronoi();
 
 let width;
 let height;
 
+let bounds;
+
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
+  bounds = new AABB(0, 0, width, height);
 }
 
 function randomColor() {
@@ -44,7 +45,7 @@ function draw() {
   vertex(0, height);
   endShape(CLOSE);
 
-  v.compute(points, width, height);
+  let v = new Voronoi(points, width, height);
 
   stroke(color(0, 0, 0));
   points.forEach((point, i) => {
