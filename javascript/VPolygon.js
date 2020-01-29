@@ -30,29 +30,27 @@ class VPolygon {
   }
 
   add(p) {
-    if (this.vertices.every(v => v.x !== p.x || v.y !== p.y)) this.vertices.push(p);
+    if (this.vertices.every(v => !v.equals(p))) this.vertices.push(p);
   }
 
   sort() {
     const center = this.center;
     this.vertices.sort((a, b) => {
-      if (a.x - center.x >= 0 && b.x - center.x < 0) return 1;
-      if (a.x - center.x < 0 && b.x - center.x >= 0) return -1;
-      if (a.x - center.x == 0 && b.x - center.x == 0) {
-        let bool = a.y - center.y >= 0 || b.y - center.y >= 0;
-        return bool ? (a.y > b.y ? 1 : -1) : a.y < b.y ? 1 : -1;
-      }
+      const ax = a.x - center.x;
+      const ay = a.y - center.y;
+      const bx = b.x - center.x;
+      const by = b.y - center.y;
+      if (ax >= 0 && bx < 0) return 1;
+      if (ax < 0 && bx >= 0) return -1;
+      if (ax == 0 && bx == 0) return ay >= 0 || by >= 0 ? (a.y > b.y ? 1 : -1) : a.y < b.y ? 1 : -1;
 
       // compute the cross product of vectors (center -> a) x (center -> b)
-      let det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
-      if (det < 0) return 1;
-      if (det > 0) return -1;
+      let det = ax * by - bx * ay;
+      if (det !== 0) return det < 0 ? 1 : -1;
 
       // points a and b are on the same line from the center
       // check which point is closer to the center
-      let d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
-      let d2 = (b.x - center.x) * (b.x - center.x) + (b.y - center.y) * (b.y - center.y);
-      return d1 > d2 ? 1 : -1;
+      return sq(ax) + sq(ay) > sq(bx) + sq(by) ? 1 : -1;
     });
   }
 
@@ -62,4 +60,3 @@ class VPolygon {
     endShape(CLOSE);
   }
 }
-z;

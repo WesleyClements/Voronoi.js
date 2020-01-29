@@ -14,6 +14,11 @@ class Point {
     return Point.distance(this, other);
   }
 
+  equals(other) {
+    if (other instanceof Point) return this.x === other.x && this.y === other.y;
+    return true;
+  }
+
   draw() {
     point(this.x, this.y);
   }

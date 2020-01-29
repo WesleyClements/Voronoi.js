@@ -49,7 +49,17 @@ class VEdge {
   draw() {
     let s = this.start;
     let e = this.end;
+    // let l = this.left;
+    // let r = this.right;
+    // let avg = new Point((s.x + e.x) / 2, (s.y + e.y) / 2);
     if (!s || !e) return;
+    // strokeWeight(2.5);
     line(s.x, s.y, e.x, e.y);
+    // line(l.x, l.y, avg.x, avg.y);
+    // line(r.x, r.y, avg.x, avg.y);
+    // strokeWeight(10);
+    // s.draw();
+    // e.draw();
+    // avg.draw();
   }
 }

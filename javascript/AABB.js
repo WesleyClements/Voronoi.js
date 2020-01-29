@@ -26,11 +26,11 @@ class AABB {
       if (this.containsY(s.y) && this.containsY(e.y)) return true;
       if (this.containsX(s.x) && this.containsX(e.x)) return true;
 
-      if (s.y < this.y0 && e.y < this.y0) return false;
-      if (s.y > this.y1 && e.y > this.y1) return false;
+      if (s.y <= this.y0 && e.y <= this.y0) return false;
+      if (s.y >= this.y1 && e.y >= this.y1) return false;
 
-      if (s.x < this.x0 && e.x < this.x0) return false;
-      if (s.x > this.x1 && e.x > this.x1) return false;
+      if (s.x <= this.x0 && e.x <= this.x0) return false;
+      if (s.x >= this.x1 && e.x >= this.x1) return false;
 
       let p00 = new Point(this.x0, this.y0);
       let p01 = new Point(this.x0, this.y1);

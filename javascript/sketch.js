@@ -46,21 +46,21 @@ function draw() {
 
   v.compute(points, width, height);
 
-  if (v.edges) {
-    strokeWeight(2.5);
-    stroke(color(0, 0, 0));
-    v.edges.forEach(edge => edge.draw());
-  }
-
+  stroke(color(0, 0, 0));
   points.forEach((point, i) => {
-    /*strokeWeight(1);
+    strokeWeight(1);
     stroke(color(0, 0, 0));
     fill(pointColors[i]);
-    v.polygons[i].draw();*/
+    v.polygons[i].draw();
     strokeWeight(10);
-    stroke(pointColors[i]);
     point.draw();
   });
+
+  // stroke(color(0, 0, 0));
+  // if (v.edges) {
+  //   strokeWeight(2.5);
+  //   v.edges.forEach(edge => edge.draw());
+  // }
 }
 
 function getMouseX() {

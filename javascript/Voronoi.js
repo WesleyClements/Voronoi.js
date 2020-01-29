@@ -63,10 +63,10 @@ class Voronoi {
       if (!bounds.contains(edge)) edge.isTrash = true;
     });
     this.edges = this.edges.filter(edge => !edge.isTrash);
-
     this.edges.forEach(edge => bounds.constrain(edge));
+    this.edges = this.edges.filter(edge => Point.distance(edge.start, edge.end) > 1);
 
-    /*this.edges.forEach(edge => {
+    this.edges.forEach(edge => {
       edge.left.polygon.add(edge.start);
       edge.left.polygon.add(edge.end);
       edge.right.polygon.add(edge.start);
@@ -86,23 +86,18 @@ class Voronoi {
         }
       });
       return closest;
-    }
-    findClosestPoint(new Point(0, 0), this.places).forEach(point =>
-      point.polygon.add(new Point(0, 0)),
+    };
+    findClosestPoint(new Point(0, 0), this.places).forEach(point => point.polygon.add(new Point(0, 0)));
+    findClosestPoint(new Point(0, this.height), this.places).forEach(point =>
+      point.polygon.add(new Point(0, this.height)),
     );
-    findClosestPoint(
-      new Point(0, this.height),
-      this.places,
-    ).forEach(point => point.polygon.add(new Point(0, this.height)));
-    findClosestPoint(
-      new Point(this.width, 0),
-      this.places,
-    ).forEach(point => point.polygon.add(new Point(this.width, 0)));
-    findClosestPoint(
-      new Point(this.width, this.height),
-      this.places,
-    ).forEach(point => point.polygon.add(new Point(this.width, this.height)));
-    this.polygons.forEach(polygon => polygon.sort());*/
+    findClosestPoint(new Point(this.width, 0), this.places).forEach(point =>
+      point.polygon.add(new Point(this.width, 0)),
+    );
+    findClosestPoint(new Point(this.width, this.height), this.places).forEach(point =>
+      point.polygon.add(new Point(this.width, this.height)),
+    );
+    this.polygons.forEach(polygon => polygon.sort());
   }
 
   insertParabola(point) {
