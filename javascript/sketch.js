@@ -119,6 +119,7 @@ function draw() {
       if (i > points.length - 2) return;
       const cell = diagram.cells[site.cellId];
       if (!cell) return;
+      if (!cell.halfedges.length) return;
       const { x, y, a } = cell.halfedges.reduce(
         (result, halfedge) => {
           const {
