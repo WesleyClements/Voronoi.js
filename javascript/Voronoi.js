@@ -4,7 +4,7 @@ function Voronoi(points, width, height) {
   const queue = new VQueue();
   const bounds = new AABB(0, 0, width, height);
 
-  const places = points;
+  const places = Array.from(points);
   let edges = [];
 
   let root = null;
@@ -202,10 +202,7 @@ function Voronoi(points, width, height) {
     findClosestPoint(new Point(width, 0), places).forEach(point => point.polygon.add(new Point(width, 0)));
     findClosestPoint(new Point(width, height), places).forEach(point => point.polygon.add(new Point(width, height)));
   }
-  let polygons = places.map(place => {
-    place.polygon.sort();
-    return place.polygon;
-  });
+  let polygons = places.map(place => place.polygon.sorted());
 
   return {
     places,

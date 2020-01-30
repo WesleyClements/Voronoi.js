@@ -33,7 +33,7 @@ class VPolygon {
     if (this.vertices.every(v => !v.equals(p))) this.vertices.push(p);
   }
 
-  sort() {
+  sorted() {
     const center = this.center;
     this.vertices.sort((a, b) => {
       const ax = a.x - center.x;
@@ -52,6 +52,7 @@ class VPolygon {
       // check which point is closer to the center
       return sq(ax) + sq(ay) > sq(bx) + sq(by) ? 1 : -1;
     });
+    return this;
   }
 
   draw() {
