@@ -1,6 +1,11 @@
-const pointCount = 5;
+const pointCount = 200;
 const points = [];
-const pointColors = [];
+
+function Point(x, y) {
+  return { x, y, color: color(random() * 255, random() * 255, random() * 255) };
+}
+
+const v = new Voronoi();
 
 let width;
 let height;
@@ -10,11 +15,12 @@ let bounds;
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
-  bounds = new AABB(0, 0, width, height);
-}
-
-function randomColor() {
-  return color(random() * 255, random() * 255, random() * 255);
+  bounds = {
+    xl: 0,
+    xr: width,
+    yb: 0,
+    yt: height,
+  };
 }
 
 function setup() {
@@ -22,8 +28,7 @@ function setup() {
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
     let [x, y] = [random() * width, random() * height];
-    points.push(new Point(x, y));
-    pointColors.push(randomColor());
+    points.push(Point(x, y));
   }
 }
 
@@ -32,36 +37,43 @@ function windowResized() {
   resizeCanvas(width, height);
 }
 
+let drawn = false;
 function draw() {
+  // if (drawn) return;
+  // drawn = true;
   background(250);
 
-  stroke(color(0, 0, 0));
-  strokeWeight(2.5);
-  noFill();
-  beginShape();
-  vertex(0, 0);
-  vertex(width, 0);
-  vertex(width, height);
-  vertex(0, height);
-  endShape(CLOSE);
+  let diagram = v.compute(points, bounds);
+  //console.log(diagram.execTime);
 
-  let v = new Voronoi(points, width, height);
-
+  strokeWeight(1);
   stroke(color(0, 0, 0));
-  points.forEach((point, i) => {
-    strokeWeight(1);
-    stroke(color(0, 0, 0));
-    fill(pointColors[i]);
-    v.polygons[i].draw();
-    strokeWeight(10);
-    point.draw();
+  diagram.edges.forEach(edge => {
+    let s = edge.va;
+    let e = edge.vb;
+    if (!s || !e) return;
+    line(s.x, s.y, e.x, e.y);
   });
 
-  // stroke(color(0, 0, 0));
-  // if (v.edges) {
-  //   strokeWeight(2.5);
-  //   v.edges.forEach(edge => edge.draw());
-  // }
+  stroke(color(0, 0, 0));
+  points.forEach(site => {
+    // const cell = diagram.cells[site.cellId];
+    // if (!cell) return;
+    // if (cell.halfedges.length < 3) return;
+
+    // strokeWeight(1);
+    // stroke(color(0, 0, 0));
+    // fill(site.color);
+    // beginShape();
+    // cell.halfedges.forEach(halfedge => {
+    //   let v = halfedge.getEndpoint();
+    //   vertex(v.x, v.y);
+    // });
+    // endShape(CLOSE);
+    strokeWeight(5);
+    stroke(site.color);
+    point(site.x, site.y);
+  });
 }
 
 function getMouseX() {
@@ -78,9 +90,5 @@ function mouseMoved() {
 }
 
 function mousePressed() {
-  var last = points[points.length - 1];
-  last.x += random();
-  last.y += random();
-  points.push(new Point(getMouseX(), getMouseY()));
-  pointColors.push(randomColor());
+  points.push(Point(getMouseX(), getMouseY()));
 }
