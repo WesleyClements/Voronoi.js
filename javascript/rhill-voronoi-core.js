@@ -146,8 +146,7 @@ TODO: Let the user close the Voronoi cells, do not do it automatically. Not only
 
 class Voronoi {
   constructor() {
-    this.edges = null;
-    this.cells = null;
+    this.diagram = null;
     this.beachsectionJunkyard = [];
     this.circleEventJunkyard = [];
   }
@@ -181,27 +180,19 @@ class Voronoi {
     this.beachline.root = null;
     if (!this.circleEvents) this.circleEvents = new Voronoi.RBTree();
     this.circleEvents.root = this.firstCircleEvent = null;
-    this.edges = [];
-    this.cells = [];
+    this.diagram = new Voronoi.Diagram();
   }
 
   // this create and add an edge to internal collection, and also create
   // two halfedges which are added to each site's counterclockwise array
   // of halfedges.
-  createEdge(left, right, va, vb) {
+  createEdge(left, right, vertexA, vertexB) {
     const edge = new Voronoi.Edge(left, right);
-    this.edges.push(edge);
-    if (va) Voronoi.Edge.setStartpoint(edge, left, right, va);
-    if (vb) Voronoi.Edge.setEndpoint(edge, left, right, vb);
-    this.cells[left.cellId].halfedges.push(new Voronoi.Halfedge(edge, left, right));
-    this.cells[right.cellId].halfedges.push(new Voronoi.Halfedge(edge, right, left));
-    return edge;
-  }
-  createBorderEdge(left, va, vb) {
-    const edge = new Voronoi.Edge(left, null);
-    edge.va = va;
-    edge.vb = vb;
-    this.edges.push(edge);
+    this.diagram.edges.push(edge);
+    if (vertexA) Voronoi.Edge.setStartpoint(edge, left, right, vertexA);
+    if (vertexB) Voronoi.Edge.setEndpoint(edge, left, right, vertexB);
+    this.diagram.cells[left.cellId].halfedges.push(new Voronoi.Halfedge(edge, left, right));
+    this.diagram.cells[right.cellId].halfedges.push(new Voronoi.Halfedge(edge, right, left));
     return edge;
   }
 
@@ -352,7 +343,7 @@ class Voronoi {
 
     // walk through all the disappearing transitions between beach sections and
     // set the start point of their (implied) edge.
-    var nArcs = disappearingTransitions.length,
+    let nArcs = disappearingTransitions.length,
       iArc;
     for (iArc = 1; iArc < nArcs; iArc++) {
       rArc = disappearingTransitions[iArc];
@@ -583,7 +574,7 @@ class Voronoi {
     // to waste CPU cycles by checking
 
     // recycle circle event object if possible
-    var circleEvent = this.circleEventJunkyard.pop();
+    let circleEvent = this.circleEventJunkyard.pop();
     if (!circleEvent) circleEvent = new Voronoi.CircleEvent();
     circleEvent.arc = arc;
     circleEvent.site = center;
@@ -625,265 +616,8 @@ class Voronoi {
   }
 
   // ---------------------------------------------------------------------------
-  // Diagram completion methods
-
-  // connect dangling edges (not if a cursory test tells us
-  // it is not going to be visible.
-  // return value:
-  //   false: the dangling endpoint couldn't be connected
-  //   true: the dangling endpoint could be connected
-  connectEdge(edge, bbox) {
-    // skip if end point already connected
-    if (edge.vb) return true;
-
-    const { xl, xr, yb, yt } = bbox;
-
-    let va = edge.va;
-    let vb;
-
-    // make local copy for performance purpose
-    const { left, right } = edge;
-    const avg = { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
-
-    if (right.y === left.y) {
-    }
-
-    // remember, direction of line (relative to left site):
-    // upward: left.x < right.x
-    // downward: left.x > right.x
-    // horizontal: left.x == right.x
-    // upward: left.x < right.x
-    // rightward: left.y < right.y
-    // leftward: left.y > right.y
-    // vertical: left.y == right.y
-
-    // depending on the direction, find the best side of the
-    // bounding box to use to determine a reasonable start point
-
-    // special case: vertical line
-    if (right.y === left.y) {
-      // doesn't intersect with viewport
-      if (avg.x < xl || avg.x >= xr) return false;
-
-      // downward
-      if (left.x > right.x) {
-        if (!va) va = new Voronoi.Vertex(avg.x, yb);
-        else if (va.y >= yt) return false;
-
-        vb = new Voronoi.Vertex(avg.x, yt);
-      }
-      // upward
-      else {
-        if (!va) va = new Voronoi.Vertex(avg.x, yt);
-        else if (va.y < yb) return false;
-
-        vb = new Voronoi.Vertex(avg.x, yb);
-      }
-    } else {
-      // get the line equation of the bisector
-      const fm = (left.x - right.x) / (right.y - left.y);
-      const fb = avg.y - fm * avg.x;
-      // closer to vertical than horizontal, connect start point to the
-      // top or bottom side of the bounding box
-      if (fm < -1 || fm > 1) {
-        // downward
-        if (left.x > right.x) {
-          if (!va) va = new Voronoi.Vertex((yb - fb) / fm, yb);
-          else if (va.y >= yt) return false;
-
-          vb = new Voronoi.Vertex((yt - fb) / fm, yt);
-        }
-        // upward
-        else {
-          if (!va) va = new Voronoi.Vertex((yt - fb) / fm, yt);
-          else if (va.y < yb) return false;
-
-          vb = new Voronoi.Vertex((yb - fb) / fm, yb);
-        }
-      }
-      // closer to horizontal than vertical, connect start point to the
-      // left or right side of the bounding box
-      else {
-        // rightward
-        if (left.y < right.y) {
-          if (!va) va = new Voronoi.Vertex(xl, fm * xl + fb);
-          else if (va.x >= xr) return false;
-
-          vb = new Voronoi.Vertex(xr, fm * xr + fb);
-        }
-        // leftward
-        else {
-          if (!va) va = new Voronoi.Vertex(xr, fm * xr + fb);
-          else if (va.x < xl) return false;
-
-          vb = new Voronoi.Vertex(xl, fm * xl + fb);
-        }
-      }
-    }
-    edge.va = va;
-    edge.vb = vb;
-    return true;
-  }
-
-  // line-clipping code taken from:
-  //   Liang-Barsky function by Daniel White
-  //   http://www.skytopia.com/project/articles/compsci/clipping.html
-  // Thanks!
-  // A bit modified to minimize code paths
-  clipEdge(edge, bbox) {
-    const { xl, xr, yb, yt } = bbox;
-
-    let {
-      va: { x: ax, y: ay },
-      vb: { x: bx, y: by },
-    } = edge;
-    let t0 = 0;
-    let t1 = 1;
-    let dx = bx - ax;
-    let dy = by - ay;
-
-    // left
-    let q = ax - xl;
-    if (dx === 0 && q < 0) return false;
-
-    let r = -q / dx;
-    if (dx < 0) {
-      if (r < t0) return false;
-      else if (r < t1) t1 = r;
-    } else if (dx > 0) {
-      if (r > t1) return false;
-      else if (r > t0) t0 = r;
-    }
-    // right
-    q = xr - ax;
-    if (dx === 0 && q < 0) return false;
-
-    r = q / dx;
-    if (dx < 0) {
-      if (r > t1) return false;
-      else if (r > t0) t0 = r;
-    } else if (dx > 0) {
-      if (r < t0) return false;
-      else if (r < t1) t1 = r;
-    }
-    // top
-    q = ay - yb;
-    if (dy === 0 && q < 0) return false;
-
-    r = -q / dy;
-    if (dy < 0) {
-      if (r < t0) return false;
-      else if (r < t1) t1 = r;
-    } else if (dy > 0) {
-      if (r > t1) return false;
-      else if (r > t0) t0 = r;
-    }
-    // bottom
-    q = yt - ay;
-    if (dy === 0 && q < 0) return false;
-
-    r = q / dy;
-    if (dy < 0) {
-      if (r > t1) return false;
-      else if (r > t0) t0 = r;
-    } else if (dy > 0) {
-      if (r < t0) return false;
-      else if (r < t1) t1 = r;
-    }
-
-    // if we reach this point, Voronoi edge is within bbox
-
-    // if t0 > 0, va needs to change
-    // rhill 2011-06-03: we need to create a new vertex rather
-    // than modifying the existing one, since the existing
-    // one is likely shared with at least another edge
-    if (t0 > 0) edge.va = new Voronoi.Vertex(ax + t0 * dx, ay + t0 * dy);
-
-    // if t1 < 1, vb needs to change
-    // rhill 2011-06-03: we need to create a new vertex rather
-    // than modifying the existing one, since the existing
-    // one is likely shared with at least another edge
-    if (t1 < 1) edge.vb = new Voronoi.Vertex(ax + t1 * dx, ay + t1 * dy);
-
-    return true;
-  }
-
-  // Connect/cut edges at bounding box
-  clipEdges(bbox) {
-    // connect all dangling edges to bounding box
-    // or get rid of them if it can't be done
-    this.edges = this.edges.filter(edge => {
-      // edge is removed if:
-      //   it is wholly outside the bounding box
-      //   it is actually a point rather than a line
-      if (
-        this.connectEdge(edge, bbox) &&
-        this.clipEdge(edge, bbox) &&
-        !Voronoi.Vertex.equalWithEpsilon(edge.va, edge.vb)
-      )
-        return true;
-      edge.va = edge.vb = null;
-      return false;
-    });
-  }
-
-  // Close the cells.
-  // The cells are bound by the supplied bounding box.
-  // Each cell refers to its associated site, and a list
-  // of halfedges ordered counterclockwise.
-  closeCells(bbox) {
-    // prune, order halfedges, then add missing ones
-    // required to close cells
-    const { xl, xr, yb, yt } = bbox;
-
-    this.cells.forEach(cell => {
-      // trim non fully-defined halfedges and sort them counterclockwise
-      if (!cell.prepare()) return;
-      // close open cells
-      // step 1: find first 'unclosed' point, if any.
-      // an 'unclosed' point will be the end point of a halfedge which
-      // does not match the start point of the following halfedge
-      let halfedges = cell.halfedges;
-      // special case: only one site, in which case, the viewport is the cell
-      // ...
-      // all other cases
-      for (let i = 0; i < halfedges.length; ++i) {
-        let endpoint = halfedges[i].getEndpoint();
-        let startpoint = halfedges[(i + 1) % halfedges.length].getStartpoint();
-        // if end point is not equal to start point, we need to add the missing
-        // halfedge(s) to close the cell
-        if (!Voronoi.Vertex.equalWithEpsilon(startpoint, endpoint)) {
-          // if we reach this point, cell needs to be closed by walking
-          // counterclockwise along the bounding box until it connects
-          // to next halfedge in the list
-          let va = endpoint;
-          let vb;
-          // walk downward along left side
-          if (Voronoi.equalWithEpsilon(endpoint.x, xl) && Voronoi.lessThanWithEpsilon(endpoint.y, yt)) {
-            vb = new Voronoi.Vertex(xl, Voronoi.equalWithEpsilon(startpoint.x, xl) ? startpoint.y : yt);
-          }
-          // walk rightward along bottom side
-          else if (Voronoi.equalWithEpsilon(endpoint.y, yt) && Voronoi.lessThanWithEpsilon(endpoint.x, xr)) {
-            vb = new Voronoi.Vertex(Voronoi.equalWithEpsilon(startpoint.y, yt) ? startpoint.x : xr, yt);
-          }
-          // walk upward along right side
-          else if (Voronoi.equalWithEpsilon(endpoint.x, xr) && Voronoi.greaterThanWithEpsilon(endpoint.y, yb)) {
-            vb = new Voronoi.Vertex(xr, Voronoi.equalWithEpsilon(startpoint.x, xr) ? startpoint.y : yb);
-          }
-          // walk leftward along top side
-          else if (Voronoi.equalWithEpsilon(endpoint.y, yb) && Voronoi.greaterThanWithEpsilon(endpoint.x, xl)) {
-            vb = new Voronoi.Vertex(Voronoi.equalWithEpsilon(startpoint.y, yb) ? startpoint.x : xl, yb);
-          }
-          let edge = this.createBorderEdge(cell.site, va, vb);
-          halfedges.splice(i + 1, 0, new Voronoi.Halfedge(edge, cell.site, null));
-        }
-      }
-    });
-  }
-
-  // ---------------------------------------------------------------------------
   // Top-level Fortune loop
-  compute(sites, bbox) {
+  compute(sites) {
     if (!sites || sites.length < 1) throw Error('no sites provided');
     // to measure execution time
     const startTime = new Date();
@@ -893,16 +627,6 @@ class Voronoi {
 
     // Initialize site event queue
     const siteEvents = Array.from(sites).sort(Voronoi.Vertex.compare);
-
-    // determine bounding box if none is provided
-    if (!bbox) {
-      bbox = {
-        xl: siteEvents.reduce((min, site) => (site.x < min ? site.x : min), Number.POSITIVE_INFINITY),
-        xr: siteEvents.reduce((max, site) => (site.x > max ? site.x : max), Number.NEGATIVE_INFINITY),
-        yb: siteEvents[siteEvents.length - 1].y,
-        yt: siteEvents[0].y,
-      };
-    }
 
     // process queue
     let site = siteEvents.pop();
@@ -925,7 +649,7 @@ class Voronoi {
         // only if site is not a duplicate
         if (!Voronoi.Vertex.equal(site, lastSite)) {
           // first create cell for new site
-          this.cells[siteid] = new Voronoi.Cell(site);
+          this.diagram.cells[siteid] = new Voronoi.Cell(site);
           site.cellId = siteid++;
           // then create a beachsection for that site
           this.addBeachsection(site);
@@ -941,25 +665,9 @@ class Voronoi {
       }
     }
 
-    // wrapping-up:
-    //   connect dangling edges to bounding box
-    //   cut edges as per bounding box
-    //   discard edges completely outside bounding box
-    //   discard edges which are point-like
-    this.clipEdges(bbox);
-
-    //   add missing edges in order to close opened cells
-    this.closeCells(bbox);
-
-    // to measure execution time
-    const stopTime = new Date();
-
+    this.diagram.execTime = Date.now() - startTime.getTime();
     // prepare return values
-    const result = {
-      cells: this.cells,
-      edges: this.edges,
-      execTime: stopTime.getTime() - startTime.getTime(),
-    };
+    const result = this.diagram;
 
     // clean up
     this.reset();
@@ -1198,25 +906,134 @@ Voronoi.RBTree = class {
 };
 
 // ---------------------------------------------------------------------------
+// Diagram methods
+
+Voronoi.Diagram = class {
+  constructor() {
+    // this.sites = undefined
+    this.edges = [];
+    this.cells = [];
+  }
+  get relaxedSites() {
+    return this.cells.map(cell => ({ ...cell.site, x: cell.centroid.x, y: cell.centroid.y }));
+  }
+
+  // Connect/cut edges at bounding box and close the cells.
+  // The cells are bound by the supplied bounding box.
+  // Each cell refers to its associated site, and a list
+  // of halfedges ordered counterclockwise.
+  finish(bbox) {
+    const { xl, xr, yb, yt } = bbox;
+    // connect all dangling edges to bounding box
+    // or get rid of them if it can't be done
+    this.edges = this.edges.filter(edge => {
+      // edge is removed if:
+      //   it is wholly outside the bounding box
+      //   it is actually a point rather than a line
+      if (Voronoi.Edge.connectToBounds(edge, bbox) && Voronoi.Edge.clipToBounds(edge, bbox))
+        if (!Voronoi.Vertex.equalWithEpsilon(edge.vertexA, edge.vertexB)) return true;
+      delete edge.vertexA;
+      delete edge.vertexB;
+      return false;
+    });
+
+    // prune, order halfedges, then add missing ones
+    // required to close cells
+
+    this.cells = this.cells.filter(cell => {
+      // trim non fully-defined halfedges and sort them counterclockwise
+      cell.halfedges = cell.halfedges.filter(he => he.edge.vertexA || he.edge.vertexB);
+      cell.halfedges.sort(Voronoi.Halfedge.compare);
+      let hedges = cell.halfedges;
+      if (!hedges.length) return false;
+      // close open cells
+      // step 1: find first 'unclosed' point, if any.
+      // an 'unclosed' point will be the end point of a halfedge which
+      // does not match the start point of the following halfedge
+      // special case: only one site, in which case, the viewport is the cell
+      // ...
+      // all other cases
+      for (let i = 0; i < hedges.length; ++i) {
+        let end = hedges[i].end;
+        let start = hedges[(i + 1) % hedges.length].start;
+        // if end point is not equal to start point, we need to add the missing
+        // halfedge(s) to close the cell
+        if (Voronoi.Vertex.equalWithEpsilon(start, end)) continue;
+        // if we reach this point, cell needs to be closed by walking
+        // counterclockwise along the bounding box until it connects
+        // to next halfedge in the list
+        const edge = new Voronoi.Edge(cell.site, null);
+        edge.vertexA = end;
+        this.edges.push(edge);
+        // walk downward along left side
+        if (Voronoi.equalWithEpsilon(end.x, xl) && Voronoi.lessThanWithEpsilon(end.y, yt)) {
+          edge.vertexB = new Voronoi.Vertex(xl, Voronoi.equalWithEpsilon(start.x, xl) ? start.y : yt);
+        }
+        // walk rightward along bottom side
+        else if (Voronoi.equalWithEpsilon(end.y, yt) && Voronoi.lessThanWithEpsilon(end.x, xr)) {
+          edge.vertexB = new Voronoi.Vertex(Voronoi.equalWithEpsilon(start.y, yt) ? start.x : xr, yt);
+        }
+        // walk upward along right side
+        else if (Voronoi.equalWithEpsilon(end.x, xr) && Voronoi.greaterThanWithEpsilon(end.y, yb)) {
+          edge.vertexB = new Voronoi.Vertex(xr, Voronoi.equalWithEpsilon(start.x, xr) ? start.y : yb);
+        }
+        // walk leftward along top side
+        else if (Voronoi.equalWithEpsilon(end.y, yb) && Voronoi.greaterThanWithEpsilon(end.x, xl)) {
+          edge.vertexB = new Voronoi.Vertex(Voronoi.equalWithEpsilon(start.y, yb) ? start.x : xl, yb);
+        }
+        hedges.splice(i + 1, 0, new Voronoi.Halfedge(edge, cell.site, null));
+      }
+      return true;
+    });
+    this.sites = this.cells.map(cell => cell.site);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Cell methods
 
 Voronoi.Cell = class {
   constructor(site) {
     this.site = site;
     this.halfedges = [];
+    //this._triangles = undefined;
+    // this._perimeter = undefined;
+    // this._area = undefined;
+    // this._centroid = undefined;
   }
-  prepare() {
-    // get rid of unused halfedges
-    // rhill 2011-05-27: Keep it simple, no point here in trying
-    // to be fancy: dangling edges are a typically a minority.
-    this.halfedges = this.halfedges.filter(he => he.edge.va || he.edge.vb);
-    // rhill 2011-05-26: I tried to use a binary search at insertion
-    // time to keep the array sorted on-the-fly (in Cell.addHalfedge()).
-    // There was no real benefits in doing so, performance on
-    // Firefox 3.6 was improved marginally, while performance on
-    // Opera 11 was penalized marginally.
-    this.halfedges.sort(Voronoi.Halfedge.compare);
-    return this.halfedges.length;
+  get triangles() {
+    if (this._triangles == null) {
+      this._triangles = this.halfedges.map(he => new Triangle(this.site, he.edge.vertexA, he.edge.vertexB));
+    }
+    return this._triangles;
+  }
+  get perimeter() {
+    if (this._perimeter == null) {
+      this._perimeter = this.halfedges.reduce((area, he) => {
+        return area + he.edge.length;
+      }, 0);
+    }
+    return this._perimeter;
+  }
+  get area() {
+    if (this._area == null) {
+      this._area = this.triangles.reduce((area, tri) => {
+        return area + tri.area;
+      }, 0);
+    }
+    return this._area;
+  }
+  get centroid() {
+    if (this._centroid == null) {
+      const circum = new Voronoi.Vertex(0, 0);
+      this.triangles.forEach(tri => {
+        if (!tri.circumcenter) return;
+        circum.x += tri.circumcenter.x * tri.area;
+        circum.y += tri.circumcenter.y * tri.area;
+      });
+      this._centroid = new Voronoi.Vertex(circum.x / this.area, circum.y / this.area);
+    }
+    return this._centroid;
   }
 };
 
@@ -1246,25 +1063,181 @@ Voronoi.Edge = class {
   constructor(left, right) {
     this.left = left;
     this.right = right;
-    this.va = this.vb = null;
+    this.vertexA = undefined;
+    this.vertexB = undefined;
+  }
+  get length() {
+    if (!this.vertexA || !this.vertexB) return;
+    const x = this.vertexA.x - this.vertexB.x;
+    const y = this.vertexA.y - this.vertexB.y;
+    return Math.sqrt(x * x + y * y);
   }
   static setStartpoint(edge, left, right, vertex) {
-    if (!edge.va && !edge.vb) {
-      edge.va = vertex;
+    if (!edge.vertexA && !edge.vertexB) {
+      edge.vertexA = vertex;
       edge.left = left;
       edge.right = right;
-    } else if (edge.left === right) edge.vb = vertex;
-    else edge.va = vertex;
+    } else if (edge.left === right) edge.vertexB = vertex;
+    else edge.vertexA = vertex;
   }
   static setEndpoint(edge, left, right, vertex) {
     this.setStartpoint(edge, right, left, vertex);
+  }
+
+  // connect dangling edges (not if a cursory test tells us
+  // it is not going to be visible.
+  // return value:
+  //   false: the dangling endpoint couldn't be connected
+  //   true: the dangling endpoint could be connected
+  static connectToBounds(edge, bbox) {
+    // skip if end point already connected
+    if (edge.vertexB) return true;
+
+    const { xl, xr, yb, yt } = bbox;
+
+    // make local copy for performance purpose
+    const { left, right } = edge;
+    const avg = { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
+
+    // remember, direction of line (relative to left site):
+    // upward: left.x < right.x
+    // downward: left.x > right.x
+    // horizontal: left.x == right.x
+    // upward: left.x < right.x
+    // rightward: left.y < right.y
+    // leftward: left.y > right.y
+    // vertical: left.y == right.y
+
+    // depending on the direction, find the best side of the
+    // bounding box to use to determine a reasonable start point
+
+    // special case: vertical line
+    if (right.y === left.y) {
+      // doesn't intersect with viewport
+      if (avg.x < xl || avg.x >= xr) return false;
+
+      // downward
+      if (left.x > right.x) {
+        if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex(avg.x, yb);
+        else if (edge.vertexA.y >= yt) return false;
+
+        edge.vertexB = new Voronoi.Vertex(avg.x, yt);
+      }
+      // upward
+      else {
+        if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex(avg.x, yt);
+        else if (edge.vertexA.y < yb) return false;
+
+        edge.vertexB = new Voronoi.Vertex(avg.x, yb);
+      }
+    } else {
+      // get the line equation of the bisector
+      const fm = (left.x - right.x) / (right.y - left.y);
+      const fb = avg.y - fm * avg.x;
+      // closer to vertical than horizontal, connect start point to the
+      // top or bottom side of the bounding box
+      if (fm < -1 || fm > 1) {
+        // downward
+        if (left.x > right.x) {
+          if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex((yb - fb) / fm, yb);
+          else if (edge.vertexA.y >= yt) return false;
+
+          edge.vertexB = new Voronoi.Vertex((yt - fb) / fm, yt);
+        }
+        // upward
+        else {
+          if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex((yt - fb) / fm, yt);
+          else if (edge.vertexA.y < yb) return false;
+
+          edge.vertexB = new Voronoi.Vertex((yb - fb) / fm, yb);
+        }
+      }
+      // closer to horizontal than vertical, connect start point to the
+      // left or right side of the bounding box
+      else {
+        // rightward
+        if (left.y < right.y) {
+          if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex(xl, fm * xl + fb);
+          else if (edge.vertexA.x >= xr) return false;
+
+          edge.vertexB = new Voronoi.Vertex(xr, fm * xr + fb);
+        }
+        // leftward
+        else {
+          if (!edge.vertexA) edge.vertexA = new Voronoi.Vertex(xr, fm * xr + fb);
+          else if (edge.vertexA.x < xl) return false;
+
+          edge.vertexB = new Voronoi.Vertex(xl, fm * xl + fb);
+        }
+      }
+    }
+    return true;
+  }
+
+  // line-clipping code taken from:
+  //   Liang-Barsky function by Daniel White
+  //   http://www.skytopia.com/project/articles/compsci/clipping.html
+  // Thanks!
+  // A bit modified to minimize code paths
+  static clipToBounds(edge, bbox) {
+    const { xl, xr, yb, yt } = bbox;
+
+    const {
+      vertexA: { x: ax, y: ay },
+      vertexB: { x: bx, y: by },
+    } = edge;
+    const delta = { x: bx - ax, y: by - ay };
+    let t0 = 0;
+    let t1 = 1;
+
+    const edgeIsInBounds = (p, q) => {
+      if (p === 0 && q < 0) return false;
+
+      let r = q / p;
+      if (p < 0) {
+        if (r > t1) return false;
+        else if (r > t0) t0 = r;
+      } else if (p > 0) {
+        if (r < t0) return false;
+        else if (r < t1) t1 = r;
+      }
+      return true;
+    };
+    // left
+    if (!edgeIsInBounds(-delta.x, ax - xl)) return false;
+    // right
+    if (!edgeIsInBounds(delta.x, xr - ax)) return false;
+    // bottom
+    if (!edgeIsInBounds(-delta.y, ay - yb)) return false;
+    // top
+    if (!edgeIsInBounds(delta.y, yt - ay)) return false;
+
+    // if we reach this point, Voronoi edge is within bbox
+
+    // if t0 > 0, va needs to change
+    // rhill 2011-06-03: we need to create a new vertex rather
+    // than modifying the existing one, since the existing
+    // one is likely shared with at least another edge
+    if (t0 > 0) edge.vertexA = new Voronoi.Vertex(ax + t0 * delta.x, ay + t0 * delta.y);
+
+    // if t1 < 1, vb needs to change
+    // rhill 2011-06-03: we need to create a new vertex rather
+    // than modifying the existing one, since the existing
+    // one is likely shared with at least another edge
+    if (t1 < 1) edge.vertexB = new Voronoi.Vertex(ax + t1 * delta.x, ay + t1 * delta.y);
+
+    return true;
   }
 };
 
 Voronoi.Halfedge = class {
   constructor(edge, left, right) {
     this.site = left;
-    this.edge = edge;
+    this._edge = edge;
+
+    // this._start = undefined;
+    // this._end = undefined;
+
     // 'angle' is a value to be used for properly sorting the
     // halfsegments counterclockwise. By convention, we will
     // use the angle of the line defined by the 'site to the left'
@@ -1274,21 +1247,32 @@ Voronoi.Halfedge = class {
     // edge should have both end points defined in such case.)
     if (right) this.angle = Math.atan2(right.y - left.y, right.x - left.x);
     else {
-      const { va, vb } = edge;
+      const { vertexA, vertexB } = edge;
       // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
       // but for performance purpose, these are expanded in place here.
-      if (edge.left === left) this.angle = Math.atan2(vb.x - va.x, va.y - vb.y);
-      else this.angle = Math.atan2(va.x - vb.x, vb.y - va.y);
+      if (edge.left === left) this.angle = Math.atan2(vertexB.x - vertexA.x, vertexA.y - vertexB.y);
+      else this.angle = Math.atan2(vertexA.x - vertexB.x, vertexB.y - vertexA.y);
     }
   }
   static compare(a, b) {
     return b.angle - a.angle;
   }
-  getStartpoint() {
-    return this.edge.left === this.site ? this.edge.va : this.edge.vb;
+  get edge() {
+    return this._edge;
   }
-  getEndpoint() {
-    return this.edge.left === this.site ? this.edge.vb : this.edge.va;
+  get start() {
+    if (this._start == null) {
+      if (this.edge.left === this.site) this._start = this.edge.vertexA;
+      else this._start = this.edge.vertexB;
+    }
+    return this._start;
+  }
+  get end() {
+    if (this._end == null) {
+      if (this.edge.left === this.site) this._end = this.edge.vertexB;
+      else this._end = this.edge.vertexA;
+    }
+    return this._end;
   }
 };
 
