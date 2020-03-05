@@ -141,39 +141,58 @@ TODO: Identify opportunities for performance improvement.\
 /*global Math */
 import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon } from './util/FloatUtil.js';
 
-import RBTree from './util/RBTree.js';
+import { RBTree, RBTreeNode } from './util/RBTree.js';
 
 import Point from './util/Point.js';
 import Triangle from './util/Triangle.js';
 
-// rhill 2011-06-07: For some reasons, performance suffers significantly
-// when instanciating a literal object instead of an empty ctor
-class BeachSection {
-  constructor() {}
+//#region Data Structures
+interface Site {
+  cell?: Cell;
 }
 
-// rhill 2011-06-07: For some reasons, performance suffers significantly
-// when instanciating a literal object instead of an empty ctor
-class CircleEvent {}
-
 //#region Point Functions
-function comparePoints(a, b) {
-  let r = b.y - a.y;
+function comparePoints(a: Point, b: Point): number {
+  let r: number = b.y - a.y;
   if (r) return r;
   return b.x - a.x;
 }
-function pointsEqualWithEpsilon(a, b) {
+function pointsEqualWithEpsilon(a: Point, b: Point): boolean {
   return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
 }
 //#endregion
 
+// rhill 2011-06-07: For some reasons, performance suffers significantly
+// when instanciating a literal object instead of an empty ctor
+class BeachSection {
+  site: Point & Site;
+  circleEvent: CircleEvent;
+  edge: Edge;
+}
+
+// rhill 2011-06-07: For some reasons, performance suffers significantly
+// when instanciating a literal object instead of an empty ctor
+class CircleEvent {
+  x: number;
+  y: number;
+  ycenter: number;
+  site: Point & Site;
+  arc: BeachSection & RBTreeNode<BeachSection>;
+}
+
 class Edge {
-  constructor(left, right) {
+  left: Point & Site;
+  right: Point & Site;
+
+  vertexA: Point;
+  vertexB: Point;
+
+  _length: number;
+
+  constructor(left: Point, right: Point);
+  constructor(left: Point & Site, right: Point & Site) {
     this.left = left;
     this.right = right;
-    // this.vertexA = undefined;
-    // this.vertexB = undefined;
-    // this._length = undefined;
     // this._center = undefined;
   }
   get length() {
@@ -188,7 +207,8 @@ class Edge {
 }
 
 //#region Edge Functions
-function setEdgeStart(edge, left, right, vertex) {
+function setEdgeStart(edge: Edge, left: Point, right: Point, vertex: Point): void;
+function setEdgeStart(edge: Edge, left: Point & Site, right: Point & Site, vertex: Point): void {
   if (!edge.vertexA && !edge.vertexB) {
     edge.vertexA = vertex;
     edge.left = left;
@@ -196,7 +216,8 @@ function setEdgeStart(edge, left, right, vertex) {
   } else if (edge.left === right) edge.vertexB = vertex;
   else edge.vertexA = vertex;
 }
-function setEdgeEnd(edge, left, right, vertex) {
+function setEdgeEnd(edge: Edge, left: Point, right: Point, vertex: Point): void;
+function setEdgeEnd(edge: Edge, left: Point & Site, right: Point & Site, vertex: Point): void {
   setEdgeStart(edge, right, left, vertex);
 }
 
@@ -205,7 +226,7 @@ function setEdgeEnd(edge, left, right, vertex) {
 // return value:
 //   false: the dangling endpoint couldn't be connected
 //   true: the dangling endpoint could be connected
-function connectEdgeToBounds(edge, bbox) {
+function connectEdgeToBounds(edge: Edge, bbox: { xl: number; xr: number; yb: number; yt: number }): boolean {
   // skip if end point already connected
   if (edge.vertexB) return true;
 
@@ -295,7 +316,7 @@ function connectEdgeToBounds(edge, bbox) {
 //   http://www.skytopia.com/project/articles/compsci/clipping.html
 // Thanks!
 // A bit modified to minimize code paths
-function clipEdgeToBounds(edge, bbox) {
+function clipEdgeToBounds(edge: Edge, bbox: { xl: number; xr: number; yb: number; yt: number }): boolean {
   const { xl, xr, yb, yt } = bbox;
 
   const {
@@ -306,7 +327,7 @@ function clipEdgeToBounds(edge, bbox) {
   let t0 = 0;
   let t1 = 1;
 
-  const edgeIsInBounds = (p, q) => {
+  const edgeIsInBounds = (p: number, q: number) => {
     if (p === 0 && q < 0) return false;
 
     let r = q / p;
@@ -347,9 +368,17 @@ function clipEdgeToBounds(edge, bbox) {
 //#endregion
 
 class CellEdge {
-  constructor(site, edge, other) {
+  site: Point & Site;
+  sharedEdge: Edge;
+  angle: number;
+
+  _start: Point;
+  _end: Point;
+
+  constructor(site: Point, sharedEdge: Edge, other?: Point);
+  constructor(site: Point & Site, sharedEdge: Edge, other?: Point) {
     this.site = site;
-    this.edge = edge;
+    this.sharedEdge = sharedEdge;
 
     // this._start = undefined;
     // this._end = undefined;
@@ -363,59 +392,68 @@ class CellEdge {
     // edge should have both end points defined in such case.)
     if (other) this.angle = Math.atan2(other.y - site.y, other.x - site.x);
     else {
-      const { vertexA, vertexB } = edge;
+      const { vertexA, vertexB } = sharedEdge;
       // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
       // but for performance purpose, these are expanded in place here.
-      if (edge.left === site) this.angle = Math.atan2(vertexB.x - vertexA.x, vertexA.y - vertexB.y);
+      if (sharedEdge.left === site) this.angle = Math.atan2(vertexB.x - vertexA.x, vertexA.y - vertexB.y);
       else this.angle = Math.atan2(vertexA.x - vertexB.x, vertexB.y - vertexA.y);
     }
   }
-  get start() {
+
+  get start(): Point {
     if (this._start == null) {
-      if (this.edge.left === this.site) this._start = this.edge.vertexA;
-      else this._start = this.edge.vertexB;
+      if (this.sharedEdge.left === this.site) this._start = this.sharedEdge.vertexA;
+      else this._start = this.sharedEdge.vertexB;
     }
     return this._start;
   }
-  get end() {
+  get end(): Point {
     if (this._end == null) {
-      if (this.edge.left === this.site) this._end = this.edge.vertexB;
-      else this._end = this.edge.vertexA;
+      if (this.sharedEdge.left === this.site) this._end = this.sharedEdge.vertexB;
+      else this._end = this.sharedEdge.vertexA;
     }
     return this._end;
   }
 }
 
 //#region CellEdge Functions
-function compareCellEdges(a, b) {
+function compareCellEdges(a: CellEdge, b: CellEdge): number {
   return b.angle - a.angle;
 }
 //#endregion
 
 class Cell {
-  constructor(site) {
+  site: Point & Site;
+  edges: CellEdge[];
+
+  _triangles: Triangle[];
+
+  _perimeter: number;
+  _area: number;
+  _centroid: Point;
+
+  constructor(site: Point);
+  constructor(site: Point & Site) {
     this.site = site;
     this.edges = [];
-    //this._triangles = undefined;
-    // this._perimeter = undefined;
-    // this._area = undefined;
-    // this._centroid = undefined;
   }
-  get triangles() {
+
+  get triangles(): Triangle[] {
     if (this._triangles == null) {
-      this._triangles = this.edges.map(he => new Triangle(this.site, he.edge.vertexA, he.edge.vertexB));
+      this._triangles = this.edges.map(edge => new Triangle(this.site, edge.start, edge.end));
     }
     return this._triangles;
   }
-  get perimeter() {
+
+  get perimeter(): number {
     if (this._perimeter == null) {
       this._perimeter = this.edges.reduce((area, he) => {
-        return area + he.edge.length;
+        return area + he.sharedEdge.length;
       }, 0);
     }
     return this._perimeter;
   }
-  get area() {
+  get area(): number {
     if (this._area == null) {
       this._area = this.triangles.reduce((area, tri) => {
         return area + tri.area;
@@ -423,13 +461,14 @@ class Cell {
     }
     return this._area;
   }
-  get centroid() {
+  get centroid(): Point {
     if (this._centroid == null) {
       const circum = new Point(0, 0);
       this.triangles.forEach(tri => {
-        if (!tri.circumcenter) return;
-        circum.x += tri.circumcenter.x * tri.area;
-        circum.y += tri.circumcenter.y * tri.area;
+        let triCircum = tri.circumcenter;
+        if (!triCircum) return;
+        circum.x += triCircum.x * tri.area;
+        circum.y += triCircum.y * tri.area;
       });
       this._centroid = new Point(circum.x / this.area, circum.y / this.area);
     }
@@ -438,22 +477,29 @@ class Cell {
 }
 
 class Diagram {
+  sites: Point[];
+  edges: Edge[];
+  cells: Cell[];
+
+  execTime: number;
+
+  _finished: boolean;
+
   constructor() {
-    // this.sites = undefined
     this.edges = [];
     this.cells = [];
-    // this._finished = false
   }
-  get relaxedSites() {
+
+  get relaxedSites(): (Point & Site)[] {
     if (!this._finished) return;
-    return this.cells.map(cell => ({ ...cell.site, x: cell.centroid.x, y: cell.centroid.y }));
+    return this.cells.map(cell => ({ ...cell.site, x: cell.centroid.x, y: cell.centroid.y } as Point & Site));
   }
 
   // Connect/cut edges at bounding box and close the cells.
   // The cells are bound by the supplied bounding box.
   // Each cell refers to its associated site, and a list
   // of halfedges ordered counterclockwise.
-  finish(bbox) {
+  finish(bbox: { xl: number; xr: number; yb: number; yt: number }): void {
     const { xl, xr, yb, yt } = bbox;
     // connect all dangling edges to bounding box
     // or get rid of them if it can't be done
@@ -473,7 +519,7 @@ class Diagram {
 
     this.cells = this.cells.filter(cell => {
       // trim non fully-defined halfedges and sort them counterclockwise
-      cell.edges = cell.edges.filter(he => he.edge.vertexA || he.edge.vertexB);
+      cell.edges = cell.edges.filter(he => he.sharedEdge.vertexA || he.sharedEdge.vertexB);
       cell.edges.sort(compareCellEdges);
       let edges = cell.edges;
       if (!edges.length) {
@@ -523,22 +569,23 @@ class Diagram {
     this._finished = true;
   }
 }
+//#endregion
 
-let diagram;
+let diagram: Diagram;
 
-let beachline;
-let circleEvents;
+let beachline: RBTree<BeachSection>;
+let circleEvents: RBTree<CircleEvent>;
 
-let beachSectionJunkyard = [];
-let circleEventJunkyard = [];
+let beachSectionJunkyard: (BeachSection & RBTreeNode<BeachSection>)[] = [];
+let circleEventJunkyard: (CircleEvent & RBTreeNode<CircleEvent>)[] = [];
 
-let firstCircleEvent;
+let firstCircleEvent: CircleEvent;
 
-function reset() {
+function reset(): void {
   if (!beachline) beachline = new RBTree();
   // Move leftover beachsections to the beachsection junkyard.
   if (beachline.root) {
-    let beachSection = beachline.getFirst(beachline.root);
+    let beachSection = RBTree.getFirst(beachline.root);
     while (beachSection) {
       beachSectionJunkyard.push(beachSection); // mark for reuse
       beachSection = beachSection.rbNext;
@@ -553,7 +600,8 @@ function reset() {
 // this create and add an edge to internal collection, and also create
 // two halfedges which are added to each site's counterclockwise array
 // of halfedges.
-function createEdge(left, right, vertexA, vertexB) {
+function createEdge(left: Point, right: Point, vertexA?: Point, vertexB?: Point): Edge;
+function createEdge(left: Point & Site, right: Point & Site, vertexA: Point, vertexB: Point): Edge {
   const edge = new Edge(left, right);
   diagram.edges.push(edge);
   if (vertexA) setEdgeStart(edge, left, right, vertexA);
@@ -574,7 +622,8 @@ function createEdge(left, right, vertexA, vertexB) {
 // reason, we reuse already created Beachsections, in order
 // to avoid new memory allocation. This resulted in a measurable
 // performance gain.
-function createBeachSection(site) {
+function createBeachSection(site: Point): BeachSection;
+function createBeachSection(site: Point & Site): BeachSection {
   let beachSection = beachSectionJunkyard.pop();
   if (!beachSection) beachSection = new BeachSection();
   beachSection.site = site;
@@ -583,7 +632,7 @@ function createBeachSection(site) {
 
 // calculate the left break point of a particular beach section,
 // given a particular sweep line
-function leftBreakPoint(arc, directrix) {
+function leftBreakPoint(arc: BeachSection & RBTreeNode<BeachSection>, directrix: number) {
   // http://en.wikipedia.org/wiki/Parabola
   // http://en.wikipedia.org/wiki/Quadratic_equation
   // h1 = x1,
@@ -643,16 +692,16 @@ function leftBreakPoint(arc, directrix) {
 
 // calculate the right break point of a particular beach section,
 // given a particular directrix
-function rightBreakPoint(arc, directrix) {
+function rightBreakPoint(arc: BeachSection & RBTreeNode<BeachSection>, directrix: number) {
   if (arc.rbNext) return leftBreakPoint(arc.rbNext, directrix);
   return arc.site.y === directrix ? arc.site.x : Infinity;
 }
-function detachBeachSection(beachSection) {
+function detachBeachSection(beachSection: BeachSection & RBTreeNode<BeachSection>) {
   detachCircleEvent(beachSection); // detach potentially attached circle event
-  beachline.rbRemoveNode(beachSection); // remove from RB-tree
+  beachline.removeNode(beachSection); // remove from RB-tree
   beachSectionJunkyard.push(beachSection); // mark for reuse
 }
-function removeBeachSection(beachSection) {
+function removeBeachSection(beachSection: BeachSection & RBTreeNode<BeachSection>) {
   const { x, ycenter: y } = beachSection.circleEvent;
   const vertex = new Point(x, y);
   const disappearingTransitions = [beachSection];
@@ -724,14 +773,15 @@ function removeBeachSection(beachSection) {
   attachCircleEvent(lArc);
   attachCircleEvent(rArc);
 }
-function addBeachSection(site) {
+function addBeachSection(site: Point) {
   const { x, y: directrix } = site;
 
   // find the left and right beach sections which will surround the newly
   // created beach section.
   // rhill 2011-06-01: This loop is one of the most often executed,
   // hence we expand in-place the comparison-against-epsilon calls.
-  let leftArc, rightArc;
+  let leftArc: BeachSection & RBTreeNode<BeachSection>;
+  let rightArc: BeachSection & RBTreeNode<BeachSection>;
   let node = beachline.root;
   while (node) {
     const dxl = leftBreakPoint(node, directrix) - x;
@@ -773,8 +823,8 @@ function addBeachSection(site) {
   // undefined or null.
 
   // create a new beach section object for the site and add it to RB-tree
-  const newArc = createBeachSection(site);
-  beachline.rbInsertSuccessor(leftArc, newArc);
+  const newArc: BeachSection & RBTreeNode<BeachSection> = createBeachSection(site);
+  beachline.insertSuccessor(leftArc, newArc);
 
   // cases:
   //
@@ -801,7 +851,7 @@ function addBeachSection(site) {
 
     // split the beach section into two separate beach sections
     rightArc = createBeachSection(leftArc.site);
-    beachline.rbInsertSuccessor(newArc, rightArc);
+    beachline.insertSuccessor(newArc, rightArc);
 
     // since we have a new transition between two beach sections,
     // a new edge is born
@@ -865,10 +915,10 @@ function addBeachSection(site) {
     const c = { x: rightArc.site.x - a.x, y: rightArc.site.y - a.y };
     const d = 2 * (b.x * c.y - b.y * c.x);
 
-    b.h = b.x * b.x + b.y * b.y;
-    c.h = c.x * c.x + c.y * c.y;
+    const bh = b.x * b.x + b.y * b.y;
+    const ch = c.x * c.x + c.y * c.y;
 
-    const vertex = new Point((c.y * b.h - b.y * c.h) / d + a.x, (b.x * c.h - c.x * b.h) / d + a.y);
+    const vertex = new Point((c.y * bh - b.y * ch) / d + a.x, (b.x * ch - c.x * bh) / d + a.y);
 
     // one transition disappear
     setEdgeStart(rightArc.edge, leftArc.site, rightArc.site, vertex);
@@ -886,7 +936,7 @@ function addBeachSection(site) {
 
 // ---------------------------------------------------------------------------
 // Circle event methods
-function attachCircleEvent(arc) {
+function attachCircleEvent(arc: BeachSection & RBTreeNode<BeachSection>) {
   if (!arc.rbPrevious || !arc.rbNext) return; // does that ever happen?
   const left = arc.rbPrevious.site;
   const center = arc.site;
@@ -960,22 +1010,22 @@ function attachCircleEvent(arc) {
       }
     }
   }
-  circleEvents.rbInsertSuccessor(predecessor, circleEvent);
+  circleEvents.insertSuccessor(predecessor, circleEvent);
   if (!predecessor) firstCircleEvent = circleEvent;
 }
-function detachCircleEvent(arc) {
-  const circle = arc.circleEvent;
+function detachCircleEvent(arc: BeachSection & RBTreeNode<BeachSection>) {
+  const circle: CircleEvent & RBTreeNode<CircleEvent> = arc.circleEvent;
   if (!circle) return;
 
   if (!circle.rbPrevious) firstCircleEvent = circle.rbNext;
-  circleEvents.rbRemoveNode(circle); // remove from RB-tree
+  circleEvents.removeNode(circle); // remove from RB-tree
   circleEventJunkyard.push(circle);
   arc.circleEvent = null;
 }
 
 // ---------------------------------------------------------------------------
 // Top-level Fortune loop
-export default function compute(sites) {
+export default function compute(sites: Point[]) {
   if (!sites || sites.length < 1) throw Error('no sites provided');
   // to measure execution time
   const startTime = new Date();
@@ -987,7 +1037,7 @@ export default function compute(sites) {
   const siteEvents = Array.from(sites).sort(comparePoints);
 
   // process queue
-  let site = siteEvents.pop();
+  let site: Point & Site = siteEvents.pop();
   let circle;
   // to avoid duplicate sites
   const lastSite = {

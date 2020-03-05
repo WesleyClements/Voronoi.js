@@ -2,16 +2,92 @@
 // Red-Black tree code (based on C version of "rbtree" by Franck Bui-Huu
 // https://github.com/fbuihuu/libtree/blob/master/rb.c
 
-// rhill 2011-05-19:
-//   Voronoi sites are kept client-side now, to allow
-//   user to freely modify content. At compute time,
-//   *references* to sites are copied locally.
+export interface RBTreeNode<T> {
+  rbParent?: T & RBTreeNode<T>;
+  rbPrevious?: T & RBTreeNode<T>;
+  rbNext?: T & RBTreeNode<T>;
+  rbLeft?: T & RBTreeNode<T>;
+  rbRight?: T & RBTreeNode<T>;
+  rbRed?: boolean;
+}
 
-export default class RBTree {
+function balanceTree<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
+  // Fixup the modified tree by recoloring nodes and performing
+  // rotations (2 at most) hence the red-black tree properties are
+  // preserved.
+  let parent = node.rbParent;
+  while (parent && parent.rbRed) {
+    const grandpa = parent.rbParent;
+
+    const isLeft = parent === grandpa.rbLeft;
+
+    const uncle = isLeft ? grandpa.rbRight : grandpa.rbLeft;
+
+    if (uncle && uncle.rbRed) {
+      parent.rbRed = uncle.rbRed = false;
+      grandpa.rbRed = true;
+      node = grandpa;
+    } else {
+      if (isLeft ? node === parent.rbRight : node === parent.rbLeft) {
+        if (isLeft) rotateLeft(tree, parent);
+        else rotateRight(tree, parent);
+        node = parent;
+        parent = node.rbParent;
+      }
+      parent.rbRed = false;
+      grandpa.rbRed = true;
+      if (isLeft) rotateRight(tree, grandpa);
+      else rotateLeft(tree, grandpa);
+    }
+    parent = node.rbParent;
+  }
+}
+function rotateLeft<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
+  const { rbRight: right, rbParent: parent } = node;
+  if (parent) {
+    if (parent.rbLeft === node) parent.rbLeft = right;
+    else parent.rbRight = right;
+  } else tree.root = right;
+
+  right.rbParent = parent;
+
+  node.rbParent = right;
+  node.rbRight = right.rbLeft;
+  if (node.rbRight) node.rbRight.rbParent = node;
+  right.rbLeft = node;
+}
+function rotateRight<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
+  const { rbLeft: left, rbParent: parent } = node;
+  if (parent) {
+    if (parent.rbLeft === node) parent.rbLeft = left;
+    else parent.rbRight = left;
+  } else tree.root = left;
+
+  left.rbParent = parent;
+
+  node.rbParent = left;
+  node.rbLeft = left.rbRight;
+  if (node.rbLeft) node.rbLeft.rbParent = node;
+  left.rbRight = node;
+}
+
+export class RBTree<T> {
+  static getFirst<T>(node: T & RBTreeNode<T>): any {
+    while (node.rbLeft) node = node.rbLeft;
+    return node;
+  }
+  static getLast<T>(node: T & RBTreeNode<T>): any {
+    while (node.rbRight) node = node.rbRight;
+    return node;
+  }
+
+  root: T & RBTreeNode<T>;
+
   constructor() {
     this.root = null;
   }
-  rbInsertSuccessor(node, successor) {
+
+  insertSuccessor(node: T & RBTreeNode<T>, successor: T & RBTreeNode<T>): void {
     let parent;
     if (node) {
       // >>> rhill 2011-05-27: Performance: cache previous/next nodes
@@ -21,7 +97,7 @@ export default class RBTree {
       node.rbNext = successor;
       // <<<
       if (node.rbRight) {
-        node = this.getFirst(node.rbRight);
+        node = RBTree.getFirst(node.rbRight);
         node.rbLeft = successor;
       } else node.rbRight = successor;
 
@@ -30,7 +106,7 @@ export default class RBTree {
     // rhill 2011-06-07: if node is null, successor must be inserted
     // to the left-most part of the tree
     else if (this.root) {
-      node = this.getFirst(this.root);
+      node = RBTree.getFirst(this.root);
       // >>> Performance: cache previous/next nodes
       successor.rbPrevious = null;
       successor.rbNext = node;
@@ -49,18 +125,18 @@ export default class RBTree {
     successor.rbParent = parent;
     successor.rbRed = true;
 
-    this.rbBalanceTree(successor);
+    balanceTree(this, successor);
 
     this.root.rbRed = false;
   }
-  rbRemoveNode(node) {
+  removeNode(node: T & RBTreeNode<T>): void {
     // >>> rhill 2011-05-27: Performance: cache previous/next nodes
     if (node.rbNext) node.rbNext.rbPrevious = node.rbPrevious;
     if (node.rbPrevious) node.rbPrevious.rbNext = node.rbNext;
     node.rbNext = node.rbPrevious = null;
     // <<<
     let { rbParent: parent, rbLeft: left, rbRight: right } = node;
-    let next = !left ? right : !right ? left : this.getFirst(right);
+    let next = !left ? right : !right ? left : RBTree.getFirst(right);
     if (parent) {
       if (parent.rbLeft === node) parent.rbLeft = next;
       else parent.rbRight = next;
@@ -107,19 +183,19 @@ export default class RBTree {
         if (sibling.rbRed) {
           sibling.rbRed = false;
           parent.rbRed = true;
-          this.rbRotateLeft(parent);
+          rotateLeft(this, parent);
           sibling = parent.rbRight;
         }
         if ((sibling.rbLeft && sibling.rbLeft.rbRed) || (sibling.rbRight && sibling.rbRight.rbRed)) {
           if (!sibling.rbRight || !sibling.rbRight.rbRed) {
             sibling.rbLeft.rbRed = false;
             sibling.rbRed = true;
-            this.rbRotateRight(sibling);
+            rotateRight(this, sibling);
             sibling = parent.rbRight;
           }
           sibling.rbRed = parent.rbRed;
           parent.rbRed = sibling.rbRight.rbRed = false;
-          this.rbRotateLeft(parent);
+          rotateLeft(this, parent);
           node = this.root;
           break;
         }
@@ -128,19 +204,19 @@ export default class RBTree {
         if (sibling.rbRed) {
           sibling.rbRed = false;
           parent.rbRed = true;
-          this.rbRotateRight(parent);
+          rotateRight(this, parent);
           sibling = parent.rbLeft;
         }
         if ((sibling.rbLeft && sibling.rbLeft.rbRed) || (sibling.rbRight && sibling.rbRight.rbRed)) {
           if (!sibling.rbLeft || !sibling.rbLeft.rbRed) {
             sibling.rbRight.rbRed = false;
             sibling.rbRed = true;
-            this.rbRotateLeft(sibling);
+            rotateLeft(this, sibling);
             sibling = parent.rbLeft;
           }
           sibling.rbRed = parent.rbRed;
           parent.rbRed = sibling.rbLeft.rbRed = false;
-          this.rbRotateRight(parent);
+          rotateRight(this, parent);
           node = this.root;
           break;
         }
@@ -150,73 +226,5 @@ export default class RBTree {
       parent = parent.rbParent;
     } while (!node.rbRed);
     if (node) node.rbRed = false;
-  }
-
-  rbBalanceTree(node) {
-    // Fixup the modified tree by recoloring nodes and performing
-    // rotations (2 at most) hence the red-black tree properties are
-    // preserved.
-    let parent = node.rbParent;
-    while (parent && parent.rbRed) {
-      const grandpa = parent.rbParent;
-
-      const isLeft = parent === grandpa.rbLeft;
-
-      const uncle = isLeft ? grandpa.rbRight : grandpa.rbLeft;
-
-      if (uncle && uncle.rbRed) {
-        parent.rbRed = uncle.rbRed = false;
-        grandpa.rbRed = true;
-        node = grandpa;
-      } else {
-        if (isLeft ? node === parent.rbRight : node === parent.rbLeft) {
-          if (isLeft) this.rbRotateLeft(parent);
-          else this.rbRotateRight(parent);
-          node = parent;
-          parent = node.rbParent;
-        }
-        parent.rbRed = false;
-        grandpa.rbRed = true;
-        if (isLeft) this.rbRotateRight(grandpa);
-        else this.rbRotateLeft(grandpa);
-      }
-      parent = node.rbParent;
-    }
-  }
-  rbRotateLeft(node) {
-    const { rbRight: right, rbParent: parent } = node;
-    if (parent) {
-      if (parent.rbLeft === node) parent.rbLeft = right;
-      else parent.rbRight = right;
-    } else this.root = right;
-
-    right.rbParent = parent;
-
-    node.rbParent = right;
-    node.rbRight = right.rbLeft;
-    if (node.rbRight) node.rbRight.rbParent = node;
-    right.rbLeft = node;
-  }
-  rbRotateRight(node) {
-    const { rbLeft: left, rbParent: parent } = node;
-    if (parent) {
-      if (parent.rbLeft === node) parent.rbLeft = left;
-      else parent.rbRight = left;
-    } else this.root = left;
-
-    left.rbParent = parent;
-
-    node.rbParent = left;
-    node.rbLeft = left.rbRight;
-    if (node.rbLeft) node.rbLeft.rbParent = node;
-    left.rbRight = node;
-  }
-  getFirst(node) {
-    while (node.rbLeft) node = node.rbLeft;
-    return node;
-  }
-  getLast(node) {
-    while (node.rbRight) node = node.rbRight;
-    return node;
   }
 }

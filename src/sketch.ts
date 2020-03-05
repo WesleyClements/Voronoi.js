@@ -1,16 +1,27 @@
 import compute from './Voronoi.js';
 
 import Point from './util/Point.js';
+import { Color } from 'p5';
+import Triangle from './util/Triangle.js';
 
-const pointCount = 200;
-let points = [];
+declare global {
+  interface Window {
+    setup: () => void;
+    draw: () => void;
+    windowResized: () => void;
+    mousePressed: () => void;
+  }
+}
 
-let diagram;
+const pointCount: number = 200;
+let points: Point[] = [];
 
-let width;
-let height;
+let diagram: any;
 
-let bounds;
+let width: number;
+let height: number;
+
+let bounds: { xl: number; xr: number; yb: number; yt: number };
 let addPoint = false;
 
 function updateDimensions() {
@@ -28,13 +39,16 @@ window.setup = () => {
   updateDimensions();
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
-    const point = new Point(random() * width, random() * height);
+    const point: { [key: string]: any } = new Point(random() * width, random() * height);
     point.color = color(random() * 255, random() * 255, random() * 255);
-    points.push(point);
+    points.push(point as Point);
   }
 };
 
 window.draw = () => {
+  diagram = compute(points as Point[]);
+  diagram.finish(bounds);
+
   background(150);
 
   // if (diagram) {
@@ -49,24 +63,30 @@ window.draw = () => {
   // }
 
   stroke(color(0, 0, 0));
-  points.forEach(site => {
+  points.forEach((site: Point & { cell?: any; color: Color }) => {
     if (diagram) {
       let { cell } = site;
       if (!cell) return;
       if (cell.edges.length < 3) return;
       strokeWeight(1);
       stroke(color(0, 0, 0));
-      fill(site.color);
+      //fill(site.color);
       beginShape();
-      cell.edges.forEach(he => {
-        const v = he.end;
+      cell.edges.forEach((edge: { [key: string]: any }) => {
+        const v = edge.end;
         if (!v) return;
         vertex(v.x, v.y);
       });
       endShape(CLOSE);
+
+      strokeWeight(5);
+      stroke(site.color);
+      line(site.x, site.y, site.cell.centroid.x, site.cell.centroid.y);
+      site.cell.triangles.forEach((tri: any) => {
+        point(tri.circumcenter.x, tri.circumcenter.y);
+      });
     }
-    strokeWeight(5);
-    //stroke(site.color);
+    stroke(color(0, 0, 0));
     point(site.x, site.y);
   });
 
@@ -74,13 +94,11 @@ window.draw = () => {
     points = diagram.relaxedSites;
   }
   if (addPoint) {
-    const point = new Point(random() * width, random() * height);
+    const point: { [key: string]: any } = new Point(random() * width, random() * height);
     point.color = color(random() * 255, random() * 255, random() * 255);
-    points.push(point);
+    points.push(point as Point);
     addPoint = false;
   }
-  diagram = compute(points);
-  diagram.finish(bounds);
 };
 
 window.windowResized = () => {
