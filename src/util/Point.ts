@@ -2,7 +2,7 @@ export default class Point {
   x: number;
   y: number;
 
-  constructor(x: number, y: number) {
+  constructor(x: number = 0, y: number = 0) {
     this.x = x;
     this.y = y;
   }
@@ -11,6 +11,15 @@ export default class Point {
   }
   static equal(a: Point, b: Point): boolean {
     return a.x === b.x && a.y === b.y;
+  }
+
+  static distanceSquared(a: Point, b: Point): number {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return dx * dx + dy * dy;
+  }
+  static distance(a: Point, b: Point): number {
+    return Math.sqrt(Point.distanceSquared(a, b));
   }
 
   static midpoint(a: Point, b: Point): Point {

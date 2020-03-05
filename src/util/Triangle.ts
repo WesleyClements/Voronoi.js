@@ -1,5 +1,7 @@
 import Point from './Point.js';
 import Line from './Line.js';
+import LineSegment from './LineSegment.js';
+
 export default class Triangle {
   a: Point;
   b: Point;
@@ -15,35 +17,27 @@ export default class Triangle {
     this.c = c;
   }
 
-  //#region side length
-  get ABLength(): number {
-    const x: number = this.a.x - this.b.x;
-    const y: number = this.a.y - this.b.y;
-    return Math.sqrt(x * x + y * y);
+  get AB(): LineSegment {
+    return new LineSegment(this.a, this.b);
   }
-  get ACLength(): number {
-    const x: number = this.a.x - this.c.x;
-    const y: number = this.a.y - this.c.y;
-    return Math.sqrt(x * x + y * y);
+  get AC(): LineSegment {
+    return new LineSegment(this.a, this.c);
   }
-  get BCLength(): number {
-    const x: number = this.b.x - this.c.x;
-    const y: number = this.b.y - this.c.y;
-    return Math.sqrt(x * x + y * y);
+  get BC(): LineSegment {
+    return new LineSegment(this.b, this.c);
   }
-  //#endregion
 
   get perimeter(): number {
-    return this.ABLength + this.ACLength + this.BCLength;
+    return this.AB.length + this.AC.length + this.BC.length;
   }
   get semiperimeter(): number {
     return this.perimeter / 2;
   }
 
   get area(): number {
-    const ab: number = this.ABLength;
-    const ac: number = this.ACLength;
-    const bc: number = this.BCLength;
+    const ab: number = this.AB.length;
+    const ac: number = this.AC.length;
+    const bc: number = this.BC.length;
     const semi: number = this.semiperimeter;
 
     const sidesAreNotZero = () => ab !== 0 && ac !== 0 && bc !== 0;
@@ -51,6 +45,11 @@ export default class Triangle {
     if (sidesAreNotZero() && sidesAreNotInLine()) return sqrt(semi * (semi - ab) * (semi - ac) * (semi - bc));
     else return 0;
   }
+
+  get centroid(): Point {
+    return new Point((this.a.x + this.b.x + this.c.x) / 3, (this.a.y + this.b.y + this.c.y) / 3);
+  }
+
   get circumcenter(): Point {
     return Line.getIntersection(
       Line.getPerpendicularBisector(this.a, this.b),

@@ -41,8 +41,7 @@ export default class Line {
     return new Line(a, b).getPerpendicular(Point.midpoint(a, b));
   }
 
-  getPerpendicular(point: Point): Line;
-  getPerpendicular(point: any): Line {
+  getPerpendicular(point: Point): Line {
     return new Line(-this.dx, this.dy, -this.dx * point.x + this.dy * point.y);
   }
 

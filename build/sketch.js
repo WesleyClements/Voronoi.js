@@ -1,6 +1,6 @@
-import compute from './Voronoi.js';
+import Diagram from './Voronoi.js';
 import Point from './util/Point.js';
-const pointCount = 200;
+const pointCount = 20;
 let points = [];
 let diagram;
 let width;
@@ -27,8 +27,9 @@ window.setup = () => {
     }
 };
 window.draw = () => {
-    diagram = compute(points);
+    diagram = new Diagram(points);
     diagram.finish(bounds);
+    console.log(diagram.execTime);
     background(150);
     stroke(color(0, 0, 0));
     points.forEach((site) => {
@@ -54,7 +55,7 @@ window.draw = () => {
         point(site.x, site.y);
     });
     if (diagram) {
-        points = diagram.relaxedSites;
+        points = diagram.getRelaxedSites(0.1);
     }
     if (addPoint) {
         const point = new Point(random() * width, random() * height);

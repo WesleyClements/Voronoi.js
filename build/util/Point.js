@@ -1,5 +1,5 @@
 export default class Point {
-    constructor(x, y) {
+    constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
     }
@@ -8,6 +8,14 @@ export default class Point {
     }
     static equal(a, b) {
         return a.x === b.x && a.y === b.y;
+    }
+    static distanceSquared(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        return dx * dx + dy * dy;
+    }
+    static distance(a, b) {
+        return Math.sqrt(Point.distanceSquared(a, b));
     }
     static midpoint(a, b) {
         return new Point((a.x + b.x) / 2, (a.y + b.y) / 2);

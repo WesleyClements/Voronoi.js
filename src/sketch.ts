@@ -1,4 +1,4 @@
-import compute from './Voronoi.js';
+import Diagram from './Voronoi.js';
 
 import Point from './util/Point.js';
 import { Color } from 'p5';
@@ -13,10 +13,14 @@ declare global {
   }
 }
 
-const pointCount: number = 200;
-let points: Point[] = [];
+interface ColoredPoint extends Point {
+  color?: Color;
+}
 
-let diagram: any;
+const pointCount: number = 20;
+let points: ColoredPoint[] = [];
+
+let diagram: Diagram;
 
 let width: number;
 let height: number;
@@ -39,15 +43,16 @@ window.setup = () => {
   updateDimensions();
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
-    const point: { [key: string]: any } = new Point(random() * width, random() * height);
+    const point: ColoredPoint = new Point(random() * width, random() * height);
     point.color = color(random() * 255, random() * 255, random() * 255);
     points.push(point as Point);
   }
 };
 
 window.draw = () => {
-  diagram = compute(points as Point[]);
+  diagram = new Diagram(points);
   diagram.finish(bounds);
+  console.log(diagram.execTime);
 
   background(150);
 
@@ -84,7 +89,7 @@ window.draw = () => {
   });
 
   if (diagram) {
-    points = diagram.relaxedSites;
+    points = diagram.getRelaxedSites(0.1);
   }
   if (addPoint) {
     const point: { [key: string]: any } = new Point(random() * width, random() * height);
