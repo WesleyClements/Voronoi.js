@@ -70,7 +70,7 @@ window.draw = () => {
       if (cell.edges.length < 3) return;
       strokeWeight(1);
       stroke(color(0, 0, 0));
-      //fill(site.color);
+      fill(site.color);
       beginShape();
       cell.edges.forEach((edge: { [key: string]: any }) => {
         const v = edge.end;
@@ -78,15 +78,8 @@ window.draw = () => {
         vertex(v.x, v.y);
       });
       endShape(CLOSE);
-
-      strokeWeight(5);
-      stroke(site.color);
-      line(site.x, site.y, site.cell.centroid.x, site.cell.centroid.y);
-      site.cell.triangles.forEach((tri: any) => {
-        point(tri.circumcenter.x, tri.circumcenter.y);
-      });
     }
-    stroke(color(0, 0, 0));
+    strokeWeight(5);
     point(site.x, site.y);
   });
 
