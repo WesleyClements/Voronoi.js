@@ -1,35 +1,31 @@
-import Diagram from './Voronoi.js';
 import Point from './util/Point.js';
+import AABB from './util/AABB.js';
+import Diagram from './Voronoi.js';
 const pointCount = 20;
+const maxPointCount = 400;
 let points = [];
 let diagram;
 let width;
 let height;
 let bounds;
-let addPoint = false;
+let frameCount = 0;
 function updateDimensions() {
     width = windowWidth - 40;
     height = windowHeight - 40;
-    bounds = {
-        xl: 0,
-        xr: width,
-        yb: 0,
-        yt: height,
-    };
+    bounds = new AABB(new Point(0, 0), new Point(width, height));
 }
 window.setup = () => {
     updateDimensions();
     createCanvas(width, height);
     for (let i = 0; i < pointCount; ++i) {
         const point = new Point(random() * width, random() * height);
-        point.color = color(random() * 255, random() * 255, random() * 255);
+        point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
         points.push(point);
     }
 };
 window.draw = () => {
     diagram = new Diagram(points);
     diagram.finish(bounds);
-    console.log(diagram.execTime);
     background(150);
     stroke(color(0, 0, 0));
     points.forEach((site) => {
@@ -51,24 +47,24 @@ window.draw = () => {
             });
             endShape(CLOSE);
         }
-        strokeWeight(5);
-        point(site.x, site.y);
+    });
+    diagram.vertices.forEach(p => {
+        strokeWeight(10);
+        stroke(color(0, 0, 255));
+        point(p.x, p.y);
     });
     if (diagram) {
-        points = diagram.getRelaxedSites(0.1);
+        points = diagram.getRelaxedSites(0.02);
     }
-    if (addPoint) {
-        const point = new Point(random() * width, random() * height);
-        point.color = color(random() * 255, random() * 255, random() * 255);
+    if (points.length < maxPointCount && frameCount % 10 === 0) {
+        const point = new Point(width / 2 + Math.random() - 0.5, height / 2 + Math.random() - 0.5);
+        point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
         points.push(point);
-        addPoint = false;
     }
+    frameCount++;
 };
 window.windowResized = () => {
     updateDimensions();
     resizeCanvas(width, height);
-};
-window.mousePressed = () => {
-    addPoint = true;
 };
 //# sourceMappingURL=sketch.js.map

@@ -13,6 +13,12 @@ export default class Point {
     return a.x === b.x && a.y === b.y;
   }
 
+  static compare(a: Point, b: Point, compareYFirst: boolean = true): number {
+    let diff: number = compareYFirst ? b.y - a.y : b.x - a.x;
+    if (diff) return diff;
+    else return compareYFirst ? b.x - a.x : b.y - a.y;
+  }
+
   static distanceSquared(a: Point, b: Point): number {
     const dx = a.x - b.x;
     const dy = a.y - b.y;

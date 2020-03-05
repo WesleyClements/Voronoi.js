@@ -143,203 +143,6 @@ import { RBTree } from './util/RBTree.js';
 import Point from './util/Point.js';
 import LineSegment from './util/LineSegment.js';
 import Triangle from './util/Triangle.js';
-function comparePoints(a, b) {
-    let r = b.y - a.y;
-    if (r)
-        return r;
-    return b.x - a.x;
-}
-function pointsEqualWithEpsilon(a, b) {
-    return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
-}
-class BeachSection {
-}
-class Edge extends LineSegment {
-    constructor(left, right) {
-        super(null, null);
-        this.left = left;
-        this.right = right;
-    }
-}
-function setEdgeStart(edge, left, right, vertex) {
-    if (edge.start || edge.end) {
-        if (edge.left === right)
-            edge.end = vertex;
-        else
-            edge.start = vertex;
-    }
-    else {
-        edge.start = vertex;
-        edge.left = left;
-        edge.right = right;
-    }
-}
-function setEdgeEnd(edge, left, right, vertex) {
-    setEdgeStart(edge, right, left, vertex);
-}
-function connectEdgeToBounds(edge, bbox) {
-    if (edge.end)
-        return true;
-    const { xl, xr, yb, yt } = bbox;
-    const { left, right } = edge;
-    const avg = { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
-    if (right.y === left.y) {
-        if (avg.x < xl || avg.x >= xr)
-            return false;
-        if (left.x > right.x) {
-            if (!edge.start)
-                edge.start = new Point(avg.x, yb);
-            else if (edge.start.y >= yt)
-                return false;
-            edge.end = new Point(avg.x, yt);
-        }
-        else {
-            if (!edge.start)
-                edge.start = new Point(avg.x, yt);
-            else if (edge.start.y < yb)
-                return false;
-            edge.end = new Point(avg.x, yb);
-        }
-    }
-    else {
-        const fm = (left.x - right.x) / (right.y - left.y);
-        const fb = avg.y - fm * avg.x;
-        if (fm < -1 || fm > 1) {
-            if (left.x > right.x) {
-                if (!edge.start)
-                    edge.start = new Point((yb - fb) / fm, yb);
-                else if (edge.start.y >= yt)
-                    return false;
-                edge.end = new Point((yt - fb) / fm, yt);
-            }
-            else {
-                if (!edge.start)
-                    edge.start = new Point((yt - fb) / fm, yt);
-                else if (edge.start.y < yb)
-                    return false;
-                edge.end = new Point((yb - fb) / fm, yb);
-            }
-        }
-        else {
-            if (left.y < right.y) {
-                if (!edge.start)
-                    edge.start = new Point(xl, fm * xl + fb);
-                else if (edge.start.x >= xr)
-                    return false;
-                edge.end = new Point(xr, fm * xr + fb);
-            }
-            else {
-                if (!edge.start)
-                    edge.start = new Point(xr, fm * xr + fb);
-                else if (edge.start.x < xl)
-                    return false;
-                edge.end = new Point(xl, fm * xl + fb);
-            }
-        }
-    }
-    return true;
-}
-function clipEdgeToBounds(edge, bbox) {
-    const { xl, xr, yb, yt } = bbox;
-    const { start: { x: ax, y: ay }, end: { x: bx, y: by }, } = edge;
-    const delta = { x: bx - ax, y: by - ay };
-    let t0 = 0;
-    let t1 = 1;
-    const edgeIsInBounds = (p, q) => {
-        if (p === 0 && q < 0)
-            return false;
-        let r = q / p;
-        if (p < 0) {
-            if (r > t1)
-                return false;
-            else if (r > t0)
-                t0 = r;
-        }
-        else if (p > 0) {
-            if (r < t0)
-                return false;
-            else if (r < t1)
-                t1 = r;
-        }
-        return true;
-    };
-    if (!edgeIsInBounds(-delta.x, ax - xl))
-        return false;
-    if (!edgeIsInBounds(delta.x, xr - ax))
-        return false;
-    if (!edgeIsInBounds(-delta.y, ay - yb))
-        return false;
-    if (!edgeIsInBounds(delta.y, yt - ay))
-        return false;
-    if (t0 > 0)
-        edge.start = new Point(ax + t0 * delta.x, ay + t0 * delta.y);
-    if (t1 < 1)
-        edge.end = new Point(ax + t1 * delta.x, ay + t1 * delta.y);
-    return true;
-}
-class CellEdge {
-    constructor(site, sharedEdge, other) {
-        this.site = site;
-        this.sharedEdge = sharedEdge;
-        if (other)
-            this.angle = Math.atan2(other.y - site.y, other.x - site.x);
-        else {
-            const start = this.start;
-            const end = this.end;
-            this.angle = Math.atan2(end.x - start.x, start.y - end.y);
-        }
-    }
-    get start() {
-        if (this.sharedEdge.left === this.site)
-            return this.sharedEdge.start;
-        else
-            return this.sharedEdge.end;
-    }
-    get end() {
-        if (this.sharedEdge.left === this.site)
-            return this.sharedEdge.end;
-        else
-            return this.sharedEdge.start;
-    }
-    get length() {
-        return this.sharedEdge.length;
-    }
-}
-function compareCellEdges(a, b) {
-    return b.angle - a.angle;
-}
-class Cell {
-    constructor(site) {
-        this.site = site;
-        this.edges = [];
-    }
-    get triangles() {
-        return this.edges.map(edge => new Triangle(this.site, edge.start, edge.end));
-    }
-    get perimeter() {
-        return this.edges.reduce((area, edge) => {
-            return area + edge.length;
-        }, 0);
-    }
-    get area() {
-        return this.triangles.reduce((area, tri) => {
-            return area + tri.area;
-        }, 0);
-    }
-    get centroid() {
-        const centroid = new Point(0, 0);
-        this.triangles.forEach(tri => {
-            let circum = tri.circumcenter;
-            if (!circum)
-                return;
-            centroid.x += circum.x * tri.area;
-            centroid.y += circum.y * tri.area;
-        });
-        centroid.x /= this.area;
-        centroid.y /= this.area;
-        return centroid;
-    }
-}
 class VoronoiGenerator {
     compute(sites, diagram) {
         if (!sites || sites.length < 1)
@@ -348,7 +151,7 @@ class VoronoiGenerator {
         this.beachline = new RBTree();
         this.circleEvents = new RBTree();
         this.diagram = diagram;
-        const siteEvents = Array.from(sites).sort(comparePoints);
+        const siteEvents = Array.from(sites).sort(Point.compare);
         let site = siteEvents.pop();
         let circle;
         const lastSite = {
@@ -357,7 +160,7 @@ class VoronoiGenerator {
         };
         while (site || circle) {
             circle = this.firstCircleEvent;
-            if (site && (!circle || comparePoints(site, circle) > 0)) {
+            if (site && (!circle || Point.compare(site, circle) > 0)) {
                 if (!Point.equal(site, lastSite)) {
                     this.diagram.sites.push(site);
                     site.cell = new Cell(site);
@@ -421,7 +224,7 @@ class VoronoiGenerator {
     }
     removeBeachSection(beachSection) {
         const { x, ycenter: y } = beachSection.circleEvent;
-        const vertex = new Point(x, y);
+        const vertex = createVertex(x, y, this.diagram);
         const disappearingTransitions = [beachSection];
         let previous = beachSection.rbPrevious;
         let next = beachSection.rbNext;
@@ -520,7 +323,7 @@ class VoronoiGenerator {
             const d = 2 * (b.x * c.y - b.y * c.x);
             const bh = b.x * b.x + b.y * b.y;
             const ch = c.x * c.x + c.y * c.y;
-            const vertex = new Point((c.y * bh - b.y * ch) / d + a.x, (b.x * ch - c.x * bh) / d + a.y);
+            const vertex = createVertex((c.y * bh - b.y * ch) / d + a.x, (b.x * ch - c.x * bh) / d + a.y, this.diagram);
             setEdgeStart(rightArc.edge, leftArc.site, rightArc.site, vertex);
             newArc.edge = this.createEdge(leftArc.site, site, undefined, vertex);
             rightArc.edge = this.createEdge(site, rightArc.site, undefined, vertex);
@@ -560,7 +363,7 @@ class VoronoiGenerator {
         let predecessor = null;
         let node = this.circleEvents.root;
         while (node) {
-            if (comparePoints(circleEvent, node) > 0) {
+            if (Point.compare(circleEvent, node) > 0) {
                 if (node.rbLeft)
                     node = node.rbLeft;
                 else {
@@ -591,9 +394,219 @@ class VoronoiGenerator {
         arc.circleEvent = null;
     }
 }
+function pointsEqualWithEpsilon(a, b) {
+    return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
+}
+class BeachSection {
+}
+export class Vertex extends Point {
+    constructor(x, y) {
+        super(x, y);
+        this.edges = [];
+    }
+}
+function createVertex(x, y, diagram, edge) {
+    const vertex = new Vertex(x, y);
+    diagram.vertices.push(vertex);
+    if (edge) {
+        vertex.edges.push(edge);
+    }
+    return vertex;
+}
+export class Edge extends LineSegment {
+    constructor(left, right) {
+        super(null, null);
+        this.left = left;
+        this.right = right;
+    }
+}
+function setEdgeStart(edge, left, right, vertex) {
+    if (edge.start || edge.end) {
+        if (edge.left === right)
+            edge.end = vertex;
+        else
+            edge.start = vertex;
+    }
+    else {
+        edge.start = vertex;
+        edge.left = left;
+        edge.right = right;
+    }
+    vertex.edges.push(edge);
+}
+function setEdgeEnd(edge, left, right, vertex) {
+    setEdgeStart(edge, right, left, vertex);
+}
+function connectEdgeToBounds(diagram, edge, aabb) {
+    if (edge.end)
+        return true;
+    const { min, max } = aabb;
+    const { left, right } = edge;
+    const avg = Point.midpoint(left, right);
+    if (right.y === left.y) {
+        if (avg.x < min.x || avg.x >= max.x)
+            return false;
+        if (left.x > right.x) {
+            if (!edge.start)
+                edge.start = createVertex(avg.x, min.y, diagram, edge);
+            else if (edge.start.y >= max.y)
+                return false;
+            edge.end = createVertex(avg.x, max.y, diagram, edge);
+        }
+        else {
+            if (!edge.start)
+                edge.start = createVertex(avg.x, max.y, diagram, edge);
+            else if (edge.start.y < min.y)
+                return false;
+            edge.end = createVertex(avg.x, min.y, diagram, edge);
+        }
+    }
+    else {
+        const fm = (left.x - right.x) / (right.y - left.y);
+        const fb = avg.y - fm * avg.x;
+        if (fm < -1 || fm > 1) {
+            if (left.x > right.x) {
+                if (!edge.start)
+                    edge.start = createVertex((min.y - fb) / fm, min.y, diagram, edge);
+                else if (edge.start.y >= max.y)
+                    return false;
+                edge.end = createVertex((max.y - fb) / fm, max.y, diagram, edge);
+            }
+            else {
+                if (!edge.start)
+                    edge.start = new Vertex((max.y - fb) / fm, max.y);
+                else if (edge.start.y < min.y)
+                    return false;
+                edge.end = new Vertex((min.y - fb) / fm, min.y);
+            }
+        }
+        else {
+            if (left.y < right.y) {
+                if (!edge.start)
+                    edge.start = createVertex(min.x, fm * min.x + fb, diagram, edge);
+                else if (edge.start.x >= max.x)
+                    return false;
+                edge.end = createVertex(max.x, fm * max.x + fb, diagram, edge);
+            }
+            else {
+                if (!edge.start)
+                    edge.start = createVertex(max.x, fm * max.x + fb, diagram, edge);
+                else if (edge.start.x < min.x)
+                    return false;
+                edge.end = createVertex(min.x, fm * min.x + fb, diagram, edge);
+            }
+        }
+    }
+    return true;
+}
+function clipEdgeToBounds(diagram, edge, aabb) {
+    const { min, max } = aabb;
+    const { start: { x: ax, y: ay }, end: { x: bx, y: by }, } = edge;
+    const delta = { x: bx - ax, y: by - ay };
+    let t0 = 0;
+    let t1 = 1;
+    const edgeIsInBounds = (p, q) => {
+        if (p === 0 && q < 0)
+            return false;
+        let r = q / p;
+        if (p < 0) {
+            if (r > t1)
+                return false;
+            else if (r > t0)
+                t0 = r;
+        }
+        else if (p > 0) {
+            if (r < t0)
+                return false;
+            else if (r < t1)
+                t1 = r;
+        }
+        return true;
+    };
+    if (!edgeIsInBounds(-delta.x, ax - min.x))
+        return false;
+    if (!edgeIsInBounds(delta.x, max.x - ax))
+        return false;
+    if (!edgeIsInBounds(-delta.y, ay - min.y))
+        return false;
+    if (!edgeIsInBounds(delta.y, max.y - ay))
+        return false;
+    if (t0 > 0) {
+        edge.start = createVertex(ax + t0 * delta.x, ay + t0 * delta.y, diagram, edge);
+    }
+    if (t1 < 1) {
+        edge.end = createVertex(ax + t1 * delta.x, ay + t1 * delta.y, diagram, edge);
+    }
+    return true;
+}
+class CellEdge {
+    constructor(site, sharedEdge, other) {
+        this.site = site;
+        this.sharedEdge = sharedEdge;
+        if (other)
+            this.angle = Math.atan2(other.y - site.y, other.x - site.x);
+        else {
+            const start = this.start;
+            const end = this.end;
+            this.angle = Math.atan2(end.x - start.x, start.y - end.y);
+        }
+    }
+    get start() {
+        if (this.sharedEdge.left === this.site)
+            return this.sharedEdge.start;
+        else
+            return this.sharedEdge.end;
+    }
+    get end() {
+        if (this.sharedEdge.left === this.site)
+            return this.sharedEdge.end;
+        else
+            return this.sharedEdge.start;
+    }
+    get length() {
+        return this.sharedEdge.length;
+    }
+}
+function compareCellEdges(a, b) {
+    return b.angle - a.angle;
+}
+export class Cell {
+    constructor(site) {
+        this.site = site;
+        this.edges = [];
+        this.vertices = [];
+    }
+    get triangles() {
+        return this.edges.map(edge => new Triangle(this.site, edge.start, edge.end));
+    }
+    get perimeter() {
+        return this.edges.reduce((area, edge) => {
+            return area + edge.length;
+        }, 0);
+    }
+    get area() {
+        return this.triangles.reduce((area, tri) => {
+            return area + tri.area;
+        }, 0);
+    }
+    get centroid() {
+        const centroid = new Point(0, 0);
+        this.triangles.forEach(tri => {
+            let circum = tri.circumcenter;
+            if (!circum)
+                return;
+            centroid.x += circum.x * tri.area;
+            centroid.y += circum.y * tri.area;
+        });
+        centroid.x /= this.area;
+        centroid.y /= this.area;
+        return centroid;
+    }
+}
 export default class Diagram {
     constructor(sites) {
         this.sites = [];
+        this.vertices = [];
         this.edges = [];
         this.cells = [];
         new VoronoiGenerator().compute(sites, this);
@@ -608,10 +621,10 @@ export default class Diagram {
             return Object.assign(Object.assign({}, site), { x, y });
         });
     }
-    finish(bbox) {
-        const { xl, xr, yb, yt } = bbox;
+    finish(aabb) {
+        const { min, max } = aabb;
         this.edges = this.edges.filter(edge => {
-            if (connectEdgeToBounds(edge, bbox) && clipEdgeToBounds(edge, bbox))
+            if (connectEdgeToBounds(this, edge, aabb) && clipEdgeToBounds(this, edge, aabb))
                 if (!pointsEqualWithEpsilon(edge.start, edge.end))
                     return true;
             delete edge.start;
@@ -621,32 +634,31 @@ export default class Diagram {
         this.cells = this.cells.filter(cell => {
             cell.edges = cell.edges.filter(he => he.sharedEdge.start || he.sharedEdge.end);
             cell.edges.sort(compareCellEdges);
-            let edges = cell.edges;
-            if (!edges.length) {
+            if (!cell.edges.length) {
                 cell.site.cell = undefined;
                 return false;
             }
-            for (let i = 0; i < edges.length; ++i) {
-                let end = edges[i].end;
-                let start = edges[(i + 1) % edges.length].start;
-                if (pointsEqualWithEpsilon(start, end))
+            for (let i = 0; i < cell.edges.length; ++i) {
+                let end = cell.edges[i].end;
+                let start = cell.edges[(i + 1) % cell.edges.length].start;
+                if (pointsEqualWithEpsilon(end, start))
                     continue;
                 const edge = new Edge(cell.site, null);
                 edge.start = end;
                 this.edges.push(edge);
-                if (equalWithEpsilon(end.x, xl) && lessThanWithEpsilon(end.y, yt)) {
-                    edge.end = new Point(xl, equalWithEpsilon(start.x, xl) ? start.y : yt);
+                if (equalWithEpsilon(end.x, min.x) && lessThanWithEpsilon(end.y, max.y)) {
+                    edge.end = createVertex(min.x, equalWithEpsilon(start.x, min.x) ? start.y : max.y, this, edge);
                 }
-                else if (equalWithEpsilon(end.y, yt) && lessThanWithEpsilon(end.x, xr)) {
-                    edge.end = new Point(equalWithEpsilon(start.y, yt) ? start.x : xr, yt);
+                else if (equalWithEpsilon(end.y, max.y) && lessThanWithEpsilon(end.x, max.x)) {
+                    edge.end = createVertex(equalWithEpsilon(start.y, max.y) ? start.x : max.x, max.y, this, edge);
                 }
-                else if (equalWithEpsilon(end.x, xr) && greaterThanWithEpsilon(end.y, yb)) {
-                    edge.end = new Point(xr, equalWithEpsilon(start.x, xr) ? start.y : yb);
+                else if (equalWithEpsilon(end.x, max.x) && greaterThanWithEpsilon(end.y, min.y)) {
+                    edge.end = createVertex(max.x, equalWithEpsilon(start.x, max.x) ? start.y : min.y, this, edge);
                 }
-                else if (equalWithEpsilon(end.y, yb) && greaterThanWithEpsilon(end.x, xl)) {
-                    edge.end = new Point(equalWithEpsilon(start.y, yb) ? start.x : xl, yb);
+                else if (equalWithEpsilon(end.y, min.y) && greaterThanWithEpsilon(end.x, min.x)) {
+                    edge.end = createVertex(equalWithEpsilon(start.y, min.y) ? start.x : min.x, min.y, this, edge);
                 }
-                edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
+                cell.edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
             }
             return true;
         });

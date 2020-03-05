@@ -9,6 +9,13 @@ export default class Point {
     static equal(a, b) {
         return a.x === b.x && a.y === b.y;
     }
+    static compare(a, b, compareYFirst = true) {
+        let diff = compareYFirst ? b.y - a.y : b.x - a.x;
+        if (diff)
+            return diff;
+        else
+            return compareYFirst ? b.x - a.x : b.y - a.y;
+    }
     static distanceSquared(a, b) {
         const dx = a.x - b.x;
         const dy = a.y - b.y;

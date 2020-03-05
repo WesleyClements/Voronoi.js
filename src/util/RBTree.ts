@@ -11,10 +11,10 @@ export interface RBTreeNode<T> {
   rbRed?: boolean;
 }
 
+// Fixup the modified tree by recoloring nodes and performing
+// rotations (2 at most) hence the red-black tree properties are
+// preserved.
 function balanceTree<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
-  // Fixup the modified tree by recoloring nodes and performing
-  // rotations (2 at most) hence the red-black tree properties are
-  // preserved.
   let parent = node.rbParent;
   while (parent && parent.rbRed) {
     const grandpa = parent.rbParent;
