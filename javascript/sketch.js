@@ -1,7 +1,10 @@
+import compute from './Voronoi.js';
+
+import Point from './util/Point.js';
+
 const pointCount = 200;
 let points = [];
 
-const v = new Voronoi();
 let diagram;
 
 let width;
@@ -21,7 +24,7 @@ function updateDimensions() {
   };
 }
 
-function setup() {
+window.setup = () => {
   updateDimensions();
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
@@ -29,10 +32,10 @@ function setup() {
     point.color = color(random() * 255, random() * 255, random() * 255);
     points.push(point);
   }
-}
+};
 
-function draw() {
-  background(250);
+window.draw = () => {
+  background(150);
 
   // if (diagram) {
   //   strokeWeight(1);
@@ -48,7 +51,7 @@ function draw() {
   stroke(color(0, 0, 0));
   points.forEach(site => {
     if (diagram) {
-      const cell = diagram.cells[site.cellId];
+      let { cell } = site;
       if (!cell) return;
       if (cell.halfedges.length < 3) return;
       strokeWeight(1);
@@ -76,15 +79,15 @@ function draw() {
     points.push(point);
     addPoint = false;
   }
-  diagram = v.compute(points);
+  diagram = compute(points);
   diagram.finish(bounds);
-}
+};
 
-function windowResized() {
+window.windowResized = () => {
   updateDimensions();
   resizeCanvas(width, height);
-}
+};
 
-function mousePressed() {
+window.mousePressed = () => {
   addPoint = true;
-}
+};
