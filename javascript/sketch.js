@@ -53,12 +53,12 @@ window.draw = () => {
     if (diagram) {
       let { cell } = site;
       if (!cell) return;
-      if (cell.halfedges.length < 3) return;
+      if (cell.edges.length < 3) return;
       strokeWeight(1);
       stroke(color(0, 0, 0));
       fill(site.color);
       beginShape();
-      cell.halfedges.forEach(he => {
+      cell.edges.forEach(he => {
         const v = he.end;
         if (!v) return;
         vertex(v.x, v.y);

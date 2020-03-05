@@ -143,33 +143,29 @@ import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon 
 
 import RBTree from './util/RBTree.js';
 
+import Point from './util/Point.js';
 import Triangle from './util/Triangle.js';
 
 // rhill 2011-06-07: For some reasons, performance suffers significantly
 // when instanciating a literal object instead of an empty ctor
-class BeachSection {}
+class BeachSection {
+  constructor() {}
+}
 
 // rhill 2011-06-07: For some reasons, performance suffers significantly
 // when instanciating a literal object instead of an empty ctor
 class CircleEvent {}
 
-class Vertex {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-  static compare(a, b) {
-    let r = b.y - a.y;
-    if (r) return r;
-    return b.x - a.x;
-  }
-  static equal(a, b) {
-    return a.x === b.x && a.y === b.y;
-  }
-  static equalWithEpsilon(a, b) {
-    return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
-  }
+//#region Point Functions
+function comparePoints(a, b) {
+  let r = b.y - a.y;
+  if (r) return r;
+  return b.x - a.x;
 }
+function pointsEqualWithEpsilon(a, b) {
+  return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
+}
+//#endregion
 
 class Edge {
   constructor(left, right) {
@@ -189,169 +185,171 @@ class Edge {
     }
     return this._length;
   }
+}
 
-  static setStart(edge, left, right, vertex) {
-    if (!edge.vertexA && !edge.vertexB) {
-      edge.vertexA = vertex;
-      edge.left = left;
-      edge.right = right;
-    } else if (edge.left === right) edge.vertexB = vertex;
-    else edge.vertexA = vertex;
-  }
-  static setEnd(edge, left, right, vertex) {
-    this.setStart(edge, right, left, vertex);
-  }
+//#region Edge Functions
+function setEdgeStart(edge, left, right, vertex) {
+  if (!edge.vertexA && !edge.vertexB) {
+    edge.vertexA = vertex;
+    edge.left = left;
+    edge.right = right;
+  } else if (edge.left === right) edge.vertexB = vertex;
+  else edge.vertexA = vertex;
+}
+function setEdgeEnd(edge, left, right, vertex) {
+  setEdgeStart(edge, right, left, vertex);
+}
 
-  // connect dangling edges (not if a cursory test tells us
-  // it is not going to be visible.
-  // return value:
-  //   false: the dangling endpoint couldn't be connected
-  //   true: the dangling endpoint could be connected
-  static connectToBounds(edge, bbox) {
-    // skip if end point already connected
-    if (edge.vertexB) return true;
+// connect dangling edges (not if a cursory test tells us
+// it is not going to be visible.
+// return value:
+//   false: the dangling endpoint couldn't be connected
+//   true: the dangling endpoint could be connected
+function connectEdgeToBounds(edge, bbox) {
+  // skip if end point already connected
+  if (edge.vertexB) return true;
 
-    const { xl, xr, yb, yt } = bbox;
+  const { xl, xr, yb, yt } = bbox;
 
-    // make local copy for performance purpose
-    const { left, right } = edge;
-    const avg = { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
+  // make local copy for performance purpose
+  const { left, right } = edge;
+  const avg = { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
 
-    // remember, direction of line (relative to left site):
-    // upward: left.x < right.x
-    // downward: left.x > right.x
-    // horizontal: left.x == right.x
-    // upward: left.x < right.x
-    // rightward: left.y < right.y
-    // leftward: left.y > right.y
-    // vertical: left.y == right.y
+  // remember, direction of line (relative to left site):
+  // upward: left.x < right.x
+  // downward: left.x > right.x
+  // horizontal: left.x == right.x
+  // upward: left.x < right.x
+  // rightward: left.y < right.y
+  // leftward: left.y > right.y
+  // vertical: left.y == right.y
 
-    // depending on the direction, find the best side of the
-    // bounding box to use to determine a reasonable start point
+  // depending on the direction, find the best side of the
+  // bounding box to use to determine a reasonable start point
 
-    // special case: vertical line
-    if (right.y === left.y) {
-      // doesn't intersect with viewport
-      if (avg.x < xl || avg.x >= xr) return false;
+  // special case: vertical line
+  if (right.y === left.y) {
+    // doesn't intersect with viewport
+    if (avg.x < xl || avg.x >= xr) return false;
 
+    // downward
+    if (left.x > right.x) {
+      if (!edge.vertexA) edge.vertexA = new Point(avg.x, yb);
+      else if (edge.vertexA.y >= yt) return false;
+
+      edge.vertexB = new Point(avg.x, yt);
+    }
+    // upward
+    else {
+      if (!edge.vertexA) edge.vertexA = new Point(avg.x, yt);
+      else if (edge.vertexA.y < yb) return false;
+
+      edge.vertexB = new Point(avg.x, yb);
+    }
+  } else {
+    // get the line equation of the bisector
+    const fm = (left.x - right.x) / (right.y - left.y);
+    const fb = avg.y - fm * avg.x;
+    // closer to vertical than horizontal, connect start point to the
+    // top or bottom side of the bounding box
+    if (fm < -1 || fm > 1) {
       // downward
       if (left.x > right.x) {
-        if (!edge.vertexA) edge.vertexA = new Vertex(avg.x, yb);
+        if (!edge.vertexA) edge.vertexA = new Point((yb - fb) / fm, yb);
         else if (edge.vertexA.y >= yt) return false;
 
-        edge.vertexB = new Vertex(avg.x, yt);
+        edge.vertexB = new Point((yt - fb) / fm, yt);
       }
       // upward
       else {
-        if (!edge.vertexA) edge.vertexA = new Vertex(avg.x, yt);
+        if (!edge.vertexA) edge.vertexA = new Point((yt - fb) / fm, yt);
         else if (edge.vertexA.y < yb) return false;
 
-        edge.vertexB = new Vertex(avg.x, yb);
-      }
-    } else {
-      // get the line equation of the bisector
-      const fm = (left.x - right.x) / (right.y - left.y);
-      const fb = avg.y - fm * avg.x;
-      // closer to vertical than horizontal, connect start point to the
-      // top or bottom side of the bounding box
-      if (fm < -1 || fm > 1) {
-        // downward
-        if (left.x > right.x) {
-          if (!edge.vertexA) edge.vertexA = new Vertex((yb - fb) / fm, yb);
-          else if (edge.vertexA.y >= yt) return false;
-
-          edge.vertexB = new Vertex((yt - fb) / fm, yt);
-        }
-        // upward
-        else {
-          if (!edge.vertexA) edge.vertexA = new Vertex((yt - fb) / fm, yt);
-          else if (edge.vertexA.y < yb) return false;
-
-          edge.vertexB = new Vertex((yb - fb) / fm, yb);
-        }
-      }
-      // closer to horizontal than vertical, connect start point to the
-      // left or right side of the bounding box
-      else {
-        // rightward
-        if (left.y < right.y) {
-          if (!edge.vertexA) edge.vertexA = new Vertex(xl, fm * xl + fb);
-          else if (edge.vertexA.x >= xr) return false;
-
-          edge.vertexB = new Vertex(xr, fm * xr + fb);
-        }
-        // leftward
-        else {
-          if (!edge.vertexA) edge.vertexA = new Vertex(xr, fm * xr + fb);
-          else if (edge.vertexA.x < xl) return false;
-
-          edge.vertexB = new Vertex(xl, fm * xl + fb);
-        }
+        edge.vertexB = new Point((yb - fb) / fm, yb);
       }
     }
-    return true;
-  }
+    // closer to horizontal than vertical, connect start point to the
+    // left or right side of the bounding box
+    else {
+      // rightward
+      if (left.y < right.y) {
+        if (!edge.vertexA) edge.vertexA = new Point(xl, fm * xl + fb);
+        else if (edge.vertexA.x >= xr) return false;
 
-  // line-clipping code taken from:
-  //   Liang-Barsky function by Daniel White
-  //   http://www.skytopia.com/project/articles/compsci/clipping.html
-  // Thanks!
-  // A bit modified to minimize code paths
-  static clipToBounds(edge, bbox) {
-    const { xl, xr, yb, yt } = bbox;
-
-    const {
-      vertexA: { x: ax, y: ay },
-      vertexB: { x: bx, y: by },
-    } = edge;
-    const delta = { x: bx - ax, y: by - ay };
-    let t0 = 0;
-    let t1 = 1;
-
-    const edgeIsInBounds = (p, q) => {
-      if (p === 0 && q < 0) return false;
-
-      let r = q / p;
-      if (p < 0) {
-        if (r > t1) return false;
-        else if (r > t0) t0 = r;
-      } else if (p > 0) {
-        if (r < t0) return false;
-        else if (r < t1) t1 = r;
+        edge.vertexB = new Point(xr, fm * xr + fb);
       }
-      return true;
-    };
-    // left
-    if (!edgeIsInBounds(-delta.x, ax - xl)) return false;
-    // right
-    if (!edgeIsInBounds(delta.x, xr - ax)) return false;
-    // bottom
-    if (!edgeIsInBounds(-delta.y, ay - yb)) return false;
-    // top
-    if (!edgeIsInBounds(delta.y, yt - ay)) return false;
+      // leftward
+      else {
+        if (!edge.vertexA) edge.vertexA = new Point(xr, fm * xr + fb);
+        else if (edge.vertexA.x < xl) return false;
 
-    // if we reach this point, Voronoi edge is within bbox
-
-    // if t0 > 0, va needs to change
-    // rhill 2011-06-03: we need to create a new vertex rather
-    // than modifying the existing one, since the existing
-    // one is likely shared with at least another edge
-    if (t0 > 0) edge.vertexA = new Vertex(ax + t0 * delta.x, ay + t0 * delta.y);
-
-    // if t1 < 1, vb needs to change
-    // rhill 2011-06-03: we need to create a new vertex rather
-    // than modifying the existing one, since the existing
-    // one is likely shared with at least another edge
-    if (t1 < 1) edge.vertexB = new Vertex(ax + t1 * delta.x, ay + t1 * delta.y);
-
-    return true;
+        edge.vertexB = new Point(xl, fm * xl + fb);
+      }
+    }
   }
+  return true;
 }
 
-class Halfedge {
-  constructor(edge, left, right) {
-    this.site = left;
-    this._edge = edge;
+// line-clipping code taken from:
+//   Liang-Barsky function by Daniel White
+//   http://www.skytopia.com/project/articles/compsci/clipping.html
+// Thanks!
+// A bit modified to minimize code paths
+function clipEdgeToBounds(edge, bbox) {
+  const { xl, xr, yb, yt } = bbox;
+
+  const {
+    vertexA: { x: ax, y: ay },
+    vertexB: { x: bx, y: by },
+  } = edge;
+  const delta = { x: bx - ax, y: by - ay };
+  let t0 = 0;
+  let t1 = 1;
+
+  const edgeIsInBounds = (p, q) => {
+    if (p === 0 && q < 0) return false;
+
+    let r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      else if (r > t0) t0 = r;
+    } else if (p > 0) {
+      if (r < t0) return false;
+      else if (r < t1) t1 = r;
+    }
+    return true;
+  };
+  // left
+  if (!edgeIsInBounds(-delta.x, ax - xl)) return false;
+  // right
+  if (!edgeIsInBounds(delta.x, xr - ax)) return false;
+  // bottom
+  if (!edgeIsInBounds(-delta.y, ay - yb)) return false;
+  // top
+  if (!edgeIsInBounds(delta.y, yt - ay)) return false;
+
+  // if we reach this point, Voronoi edge is within bbox
+
+  // if t0 > 0, va needs to change
+  // rhill 2011-06-03: we need to create a new vertex rather
+  // than modifying the existing one, since the existing
+  // one is likely shared with at least another edge
+  if (t0 > 0) edge.vertexA = new Point(ax + t0 * delta.x, ay + t0 * delta.y);
+
+  // if t1 < 1, vb needs to change
+  // rhill 2011-06-03: we need to create a new vertex rather
+  // than modifying the existing one, since the existing
+  // one is likely shared with at least another edge
+  if (t1 < 1) edge.vertexB = new Point(ax + t1 * delta.x, ay + t1 * delta.y);
+
+  return true;
+}
+//#endregion
+
+class CellEdge {
+  constructor(site, edge, other) {
+    this.site = site;
+    this.edge = edge;
 
     // this._start = undefined;
     // this._end = undefined;
@@ -363,20 +361,14 @@ class Halfedge {
     // However, border edges have no 'site to the right': thus we
     // use the angle of line perpendicular to the halfsegment (the
     // edge should have both end points defined in such case.)
-    if (right) this.angle = Math.atan2(right.y - left.y, right.x - left.x);
+    if (other) this.angle = Math.atan2(other.y - site.y, other.x - site.x);
     else {
       const { vertexA, vertexB } = edge;
       // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
       // but for performance purpose, these are expanded in place here.
-      if (edge.left === left) this.angle = Math.atan2(vertexB.x - vertexA.x, vertexA.y - vertexB.y);
+      if (edge.left === site) this.angle = Math.atan2(vertexB.x - vertexA.x, vertexA.y - vertexB.y);
       else this.angle = Math.atan2(vertexA.x - vertexB.x, vertexB.y - vertexA.y);
     }
-  }
-  static compare(a, b) {
-    return b.angle - a.angle;
-  }
-  get edge() {
-    return this._edge;
   }
   get start() {
     if (this._start == null) {
@@ -394,10 +386,16 @@ class Halfedge {
   }
 }
 
+//#region CellEdge Functions
+function compareCellEdges(a, b) {
+  return b.angle - a.angle;
+}
+//#endregion
+
 class Cell {
   constructor(site) {
     this.site = site;
-    this.halfedges = [];
+    this.edges = [];
     //this._triangles = undefined;
     // this._perimeter = undefined;
     // this._area = undefined;
@@ -405,13 +403,13 @@ class Cell {
   }
   get triangles() {
     if (this._triangles == null) {
-      this._triangles = this.halfedges.map(he => new Triangle(this.site, he.edge.vertexA, he.edge.vertexB));
+      this._triangles = this.edges.map(he => new Triangle(this.site, he.edge.vertexA, he.edge.vertexB));
     }
     return this._triangles;
   }
   get perimeter() {
     if (this._perimeter == null) {
-      this._perimeter = this.halfedges.reduce((area, he) => {
+      this._perimeter = this.edges.reduce((area, he) => {
         return area + he.edge.length;
       }, 0);
     }
@@ -427,13 +425,13 @@ class Cell {
   }
   get centroid() {
     if (this._centroid == null) {
-      const circum = new Vertex(0, 0);
+      const circum = new Point(0, 0);
       this.triangles.forEach(tri => {
         if (!tri.circumcenter) return;
         circum.x += tri.circumcenter.x * tri.area;
         circum.y += tri.circumcenter.y * tri.area;
       });
-      this._centroid = new Vertex(circum.x / this.area, circum.y / this.area);
+      this._centroid = new Point(circum.x / this.area, circum.y / this.area);
     }
     return this._centroid;
   }
@@ -463,8 +461,8 @@ class Diagram {
       // edge is removed if:
       //   it is wholly outside the bounding box
       //   it is actually a point rather than a line
-      if (Edge.connectToBounds(edge, bbox) && Edge.clipToBounds(edge, bbox))
-        if (!Vertex.equalWithEpsilon(edge.vertexA, edge.vertexB)) return true;
+      if (connectEdgeToBounds(edge, bbox) && clipEdgeToBounds(edge, bbox))
+        if (!pointsEqualWithEpsilon(edge.vertexA, edge.vertexB)) return true;
       delete edge.vertexA;
       delete edge.vertexB;
       return false;
@@ -475,10 +473,10 @@ class Diagram {
 
     this.cells = this.cells.filter(cell => {
       // trim non fully-defined halfedges and sort them counterclockwise
-      cell.halfedges = cell.halfedges.filter(he => he.edge.vertexA || he.edge.vertexB);
-      cell.halfedges.sort(Halfedge.compare);
-      let hedges = cell.halfedges;
-      if (!hedges.length) {
+      cell.edges = cell.edges.filter(he => he.edge.vertexA || he.edge.vertexB);
+      cell.edges.sort(compareCellEdges);
+      let edges = cell.edges;
+      if (!edges.length) {
         cell.site.cell = undefined;
         return false;
       }
@@ -489,12 +487,12 @@ class Diagram {
       // special case: only one site, in which case, the viewport is the cell
       // ...
       // all other cases
-      for (let i = 0; i < hedges.length; ++i) {
-        let end = hedges[i].end;
-        let start = hedges[(i + 1) % hedges.length].start;
+      for (let i = 0; i < edges.length; ++i) {
+        let end = edges[i].end;
+        let start = edges[(i + 1) % edges.length].start;
         // if end point is not equal to start point, we need to add the missing
         // halfedge(s) to close the cell
-        if (Vertex.equalWithEpsilon(start, end)) continue;
+        if (pointsEqualWithEpsilon(start, end)) continue;
         // if we reach this point, cell needs to be closed by walking
         // counterclockwise along the bounding box until it connects
         // to next halfedge in the list
@@ -503,21 +501,21 @@ class Diagram {
         this.edges.push(edge);
         // walk downward along left side
         if (equalWithEpsilon(end.x, xl) && lessThanWithEpsilon(end.y, yt)) {
-          edge.vertexB = new Vertex(xl, equalWithEpsilon(start.x, xl) ? start.y : yt);
+          edge.vertexB = new Point(xl, equalWithEpsilon(start.x, xl) ? start.y : yt);
         }
         // walk rightward along bottom side
         else if (equalWithEpsilon(end.y, yt) && lessThanWithEpsilon(end.x, xr)) {
-          edge.vertexB = new Vertex(equalWithEpsilon(start.y, yt) ? start.x : xr, yt);
+          edge.vertexB = new Point(equalWithEpsilon(start.y, yt) ? start.x : xr, yt);
         }
         // walk upward along right side
         else if (equalWithEpsilon(end.x, xr) && greaterThanWithEpsilon(end.y, yb)) {
-          edge.vertexB = new Vertex(xr, equalWithEpsilon(start.x, xr) ? start.y : yb);
+          edge.vertexB = new Point(xr, equalWithEpsilon(start.x, xr) ? start.y : yb);
         }
         // walk leftward along top side
         else if (equalWithEpsilon(end.y, yb) && greaterThanWithEpsilon(end.x, xl)) {
-          edge.vertexB = new Vertex(equalWithEpsilon(start.y, yb) ? start.x : xl, yb);
+          edge.vertexB = new Point(equalWithEpsilon(start.y, yb) ? start.x : xl, yb);
         }
-        hedges.splice(i + 1, 0, new Halfedge(edge, cell.site, null));
+        edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
       }
       return true;
     });
@@ -558,10 +556,10 @@ function reset() {
 function createEdge(left, right, vertexA, vertexB) {
   const edge = new Edge(left, right);
   diagram.edges.push(edge);
-  if (vertexA) Edge.setStart(edge, left, right, vertexA);
-  if (vertexB) Edge.setEnd(edge, left, right, vertexB);
-  left.cell.halfedges.push(new Halfedge(edge, left, right));
-  right.cell.halfedges.push(new Halfedge(edge, right, left));
+  if (vertexA) setEdgeStart(edge, left, right, vertexA);
+  if (vertexB) setEdgeEnd(edge, left, right, vertexB);
+  left.cell.edges.push(new CellEdge(left, edge, right));
+  right.cell.edges.push(new CellEdge(right, edge, left));
   return edge;
 }
 
@@ -656,7 +654,7 @@ function detachBeachSection(beachSection) {
 }
 function removeBeachSection(beachSection) {
   const { x, ycenter: y } = beachSection.circleEvent;
-  const vertex = new Vertex(x, y);
+  const vertex = new Point(x, y);
   const disappearingTransitions = [beachSection];
   let previous = beachSection.rbPrevious;
   let next = beachSection.rbNext;
@@ -709,7 +707,7 @@ function removeBeachSection(beachSection) {
   for (iArc = 1; iArc < nArcs; iArc++) {
     rArc = disappearingTransitions[iArc];
     lArc = disappearingTransitions[iArc - 1];
-    Edge.setStart(rArc.edge, lArc.site, rArc.site, vertex);
+    setEdgeStart(rArc.edge, lArc.site, rArc.site, vertex);
   }
 
   // create a new edge as we have now a new transition between
@@ -870,10 +868,10 @@ function addBeachSection(site) {
     b.h = b.x * b.x + b.y * b.y;
     c.h = c.x * c.x + c.y * c.y;
 
-    const vertex = new Vertex((c.y * b.h - b.y * c.h) / d + a.x, (b.x * c.h - c.x * b.h) / d + a.y);
+    const vertex = new Point((c.y * b.h - b.y * c.h) / d + a.x, (b.x * c.h - c.x * b.h) / d + a.y);
 
     // one transition disappear
-    Edge.setStart(rightArc.edge, leftArc.site, rightArc.site, vertex);
+    setEdgeStart(rightArc.edge, leftArc.site, rightArc.site, vertex);
 
     // two new transitions appear at the new vertex location
     newArc.edge = createEdge(leftArc.site, site, undefined, vertex);
@@ -948,7 +946,7 @@ function attachCircleEvent(arc) {
   let predecessor = null;
   let node = circleEvents.root;
   while (node) {
-    if (Vertex.compare(circleEvent, node) > 0) {
+    if (comparePoints(circleEvent, node) > 0) {
       if (node.rbLeft) node = node.rbLeft;
       else {
         predecessor = node.rbPrevious;
@@ -986,7 +984,7 @@ export default function compute(sites) {
   reset();
 
   // Initialize site event queue
-  const siteEvents = Array.from(sites).sort(Vertex.compare);
+  const siteEvents = Array.from(sites).sort(comparePoints);
 
   // process queue
   let site = siteEvents.pop();
@@ -1004,9 +1002,9 @@ export default function compute(sites) {
     circle = firstCircleEvent;
 
     // add beach section
-    if (site && (!circle || Vertex.compare(site, circle) > 0)) {
+    if (site && (!circle || comparePoints(site, circle) > 0)) {
       // only if site is not a duplicate
-      if (!Vertex.equal(site, lastSite)) {
+      if (!Point.equal(site, lastSite)) {
         site.cell = new Cell(site);
         // first create cell for new site
         diagram.cells.push(site.cell);
