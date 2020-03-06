@@ -143,6 +143,7 @@ import { RBTree } from './util/RBTree.js';
 import Point from './util/Point.js';
 import LineSegment from './util/LineSegment.js';
 import Triangle from './util/Triangle.js';
+import AABB from './util/AABB.js';
 class VoronoiGenerator {
     compute(sites, diagram) {
         if (!sites || sites.length < 1)
@@ -402,16 +403,38 @@ class BeachSection {
 export class Vertex extends Point {
     constructor(x, y) {
         super(x, y);
-        this.edges = [];
+        this.edges = new Set();
+        this.cells = [];
+    }
+    get neighbors() {
+        const neighbors = [];
+        for (const edge of this.edges) {
+            if (this === edge.start)
+                neighbors.push(edge.end);
+            else
+                neighbors.push(edge.start);
+        }
+        return neighbors;
     }
 }
 function createVertex(x, y, diagram, edge) {
     const vertex = new Vertex(x, y);
     diagram.vertices.push(vertex);
-    if (edge) {
-        vertex.edges.push(edge);
-    }
+    if (edge)
+        addVertex(vertex, edge);
     return vertex;
+}
+function addVertex(vertex, edge) {
+    vertex.edges.add(edge);
+    if (edge.left)
+        edge.left.cell.vertices.push(vertex);
+    if (edge.right)
+        edge.right.cell.vertices.push(vertex);
+}
+function removeVertex(vertex, edge) {
+    if (!vertex)
+        return;
+    vertex.edges.delete(edge);
 }
 export class Edge extends LineSegment {
     constructor(left, right) {
@@ -432,7 +455,7 @@ function setEdgeStart(edge, left, right, vertex) {
         edge.left = left;
         edge.right = right;
     }
-    vertex.edges.push(edge);
+    addVertex(vertex, edge);
 }
 function setEdgeEnd(edge, left, right, vertex) {
     setEdgeStart(edge, right, left, vertex);
@@ -474,10 +497,10 @@ function connectEdgeToBounds(diagram, edge, aabb) {
             }
             else {
                 if (!edge.start)
-                    edge.start = new Vertex((max.y - fb) / fm, max.y);
+                    edge.start = createVertex((max.y - fb) / fm, max.y, diagram, edge);
                 else if (edge.start.y < min.y)
                     return false;
-                edge.end = new Vertex((min.y - fb) / fm, min.y);
+                edge.end = createVertex((min.y - fb) / fm, min.y, diagram, edge);
             }
         }
         else {
@@ -501,8 +524,7 @@ function connectEdgeToBounds(diagram, edge, aabb) {
 }
 function clipEdgeToBounds(diagram, edge, aabb) {
     const { min, max } = aabb;
-    const { start: { x: ax, y: ay }, end: { x: bx, y: by }, } = edge;
-    const delta = { x: bx - ax, y: by - ay };
+    const delta = Point.subtract(edge.end, edge.start);
     let t0 = 0;
     let t1 = 1;
     const edgeIsInBounds = (p, q) => {
@@ -523,19 +545,21 @@ function clipEdgeToBounds(diagram, edge, aabb) {
         }
         return true;
     };
-    if (!edgeIsInBounds(-delta.x, ax - min.x))
+    if (!edgeIsInBounds(-delta.x, edge.start.x - min.x))
         return false;
-    if (!edgeIsInBounds(delta.x, max.x - ax))
+    if (!edgeIsInBounds(delta.x, max.x - edge.start.x))
         return false;
-    if (!edgeIsInBounds(-delta.y, ay - min.y))
+    if (!edgeIsInBounds(-delta.y, edge.start.y - min.y))
         return false;
-    if (!edgeIsInBounds(delta.y, max.y - ay))
+    if (!edgeIsInBounds(delta.y, max.y - edge.start.y))
         return false;
     if (t0 > 0) {
-        edge.start = createVertex(ax + t0 * delta.x, ay + t0 * delta.y, diagram, edge);
+        removeVertex(edge.start, edge);
+        edge.start = createVertex(edge.start.x + t0 * delta.x, edge.start.y + t0 * delta.y, diagram, edge);
     }
     if (t1 < 1) {
-        edge.end = createVertex(ax + t1 * delta.x, ay + t1 * delta.y, diagram, edge);
+        removeVertex(edge.end, edge);
+        edge.end = createVertex(edge.start.x + t1 * delta.x, edge.start.y + t1 * delta.y, diagram, edge);
     }
     return true;
 }
@@ -551,20 +575,14 @@ class CellEdge {
             this.angle = Math.atan2(end.x - start.x, start.y - end.y);
         }
     }
-    get start() {
-        if (this.sharedEdge.left === this.site)
-            return this.sharedEdge.start;
-        else
-            return this.sharedEdge.end;
-    }
-    get end() {
-        if (this.sharedEdge.left === this.site)
-            return this.sharedEdge.end;
-        else
-            return this.sharedEdge.start;
-    }
     get length() {
         return this.sharedEdge.length;
+    }
+    get start() {
+        return this.sharedEdge.left === this.site ? this.sharedEdge.start : this.sharedEdge.end;
+    }
+    get end() {
+        return this.sharedEdge.left === this.site ? this.sharedEdge.end : this.sharedEdge.start;
     }
 }
 function compareCellEdges(a, b) {
@@ -602,6 +620,42 @@ export class Cell {
         centroid.y /= this.area;
         return centroid;
     }
+    get neighbors() {
+        return this.edges
+            .map(edge => {
+            if (edge.sharedEdge.left === this.site && edge.sharedEdge.right)
+                return edge.sharedEdge.right.cell;
+            else if (edge.sharedEdge.left)
+                return edge.sharedEdge.left.cell;
+        })
+            .filter(neighbor => neighbor);
+    }
+    get boundingAABB() {
+        const aabb = new AABB(new Point(Infinity, Infinity), new Point(Infinity, Infinity));
+        this.edges.forEach(edge => {
+            const start = edge.start;
+            if (start.x < aabb.min.x)
+                aabb.min.x = start.x;
+            else if (start.x > aabb.max.x)
+                aabb.max.x = start.x;
+            if (start.y < aabb.min.y)
+                aabb.min.y = start.y;
+            else if (start.y > aabb.max.y)
+                aabb.max.y = start.y;
+        });
+        return aabb;
+    }
+    contains(point) {
+        for (let i = 0; i < this.edges.length; ++i) {
+            const edge = this.edges[i];
+            const start = edge.start;
+            const end = edge.end;
+            const cross = (point.y - start.y) * (end.x - start.x) - (point.x - start.x) * (end.y - start.y);
+            if (cross >= 0)
+                return false;
+        }
+        return true;
+    }
 }
 export default class Diagram {
     constructor(sites) {
@@ -624,18 +678,21 @@ export default class Diagram {
     finish(aabb) {
         const { min, max } = aabb;
         this.edges = this.edges.filter(edge => {
-            if (connectEdgeToBounds(this, edge, aabb) && clipEdgeToBounds(this, edge, aabb))
+            if (connectEdgeToBounds(this, edge, aabb) && clipEdgeToBounds(this, edge, aabb)) {
                 if (!pointsEqualWithEpsilon(edge.start, edge.end))
                     return true;
+            }
+            removeVertex(edge.start, edge);
+            removeVertex(edge.end, edge);
             delete edge.start;
             delete edge.end;
             return false;
         });
         this.cells = this.cells.filter(cell => {
-            cell.edges = cell.edges.filter(he => he.sharedEdge.start || he.sharedEdge.end);
+            cell.edges = cell.edges.filter(edge => edge.start && edge.end);
             cell.edges.sort(compareCellEdges);
             if (!cell.edges.length) {
-                cell.site.cell = undefined;
+                cell.site = undefined;
                 return false;
             }
             for (let i = 0; i < cell.edges.length; ++i) {
@@ -660,9 +717,12 @@ export default class Diagram {
                 }
                 cell.edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
             }
+            cell.vertices = cell.vertices.filter(vertex => vertex.edges.size);
+            cell.vertices.forEach(vertex => vertex.cells.push(cell));
             return true;
         });
         this.sites = this.cells.map(cell => cell.site);
+        this.vertices = this.vertices.filter(vertex => vertex.edges.size);
         this._finished = true;
     }
 }

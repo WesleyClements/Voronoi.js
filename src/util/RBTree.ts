@@ -72,11 +72,13 @@ function rotateRight<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
 }
 
 export class RBTree<T> {
-  static getFirst<T>(node: T & RBTreeNode<T>): any {
+  static getFirst<T>(node: T): T & RBTreeNode<T>;
+  static getFirst<T>(node: T & RBTreeNode<T>): T & RBTreeNode<T> {
     while (node.rbLeft) node = node.rbLeft;
     return node;
   }
-  static getLast<T>(node: T & RBTreeNode<T>): any {
+  static getLast<T>(node: T): T & RBTreeNode<T>;
+  static getLast<T>(node: T & RBTreeNode<T>): T & RBTreeNode<T> {
     while (node.rbRight) node = node.rbRight;
     return node;
   }
@@ -87,6 +89,7 @@ export class RBTree<T> {
     this.root = null;
   }
 
+  insertSuccessor(node: T, successor: T): void;
   insertSuccessor(node: T & RBTreeNode<T>, successor: T & RBTreeNode<T>): void {
     let parent;
     if (node) {
@@ -129,6 +132,7 @@ export class RBTree<T> {
 
     this.root.rbRed = false;
   }
+  removeNode(node: T): void;
   removeNode(node: T & RBTreeNode<T>): void {
     // >>> rhill 2011-05-27: Performance: cache previous/next nodes
     if (node.rbNext) node.rbNext.rbPrevious = node.rbPrevious;

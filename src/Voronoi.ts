@@ -664,10 +664,21 @@ interface Site extends Point {
 }
 
 export class Vertex extends Point {
-  edges: Edge[];
+  edges: Set<Edge>;
+  cells: Cell[];
   constructor(x: number, y: number) {
     super(x, y);
-    this.edges = [];
+    this.edges = new Set();
+    this.cells = [];
+  }
+
+  get neighbors(): Vertex[] {
+    const neighbors: Vertex[] = [];
+    for (const edge of this.edges) {
+      if (this === edge.start) neighbors.push(edge.end);
+      else neighbors.push(edge.start);
+    }
+    return neighbors;
   }
 }
 
@@ -675,10 +686,17 @@ export class Vertex extends Point {
 function createVertex(x: number, y: number, diagram: Diagram, edge?: Edge): Vertex {
   const vertex = new Vertex(x, y);
   diagram.vertices.push(vertex);
-  if (edge) {
-    vertex.edges.push(edge);
-  }
+  if (edge) addVertex(vertex, edge);
   return vertex;
+}
+function addVertex(vertex: Vertex, edge: Edge): void {
+  vertex.edges.add(edge);
+  if (edge.left) edge.left.cell.vertices.push(vertex);
+  if (edge.right) edge.right.cell.vertices.push(vertex);
+}
+function removeVertex(vertex: Vertex, edge: Edge): void {
+  if (!vertex) return;
+  vertex.edges.delete(edge);
 }
 //#endregion
 
@@ -686,8 +704,8 @@ export class Edge extends LineSegment {
   left: Site;
   right: Site;
 
-  start: Point;
-  end: Point;
+  start: Vertex;
+  end: Vertex;
 
   constructor(left: Site, right: Site) {
     super(null, null);
@@ -706,7 +724,7 @@ function setEdgeStart(edge: Edge, left: Site, right: Site, vertex: Vertex): void
     edge.left = left;
     edge.right = right;
   }
-  vertex.edges.push(edge);
+  addVertex(vertex, edge);
 }
 function setEdgeEnd(edge: Edge, left: Site, right: Site, vertex: Vertex): void {
   setEdgeStart(edge, right, left, vertex);
@@ -774,10 +792,10 @@ function connectEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean 
       }
       // upward
       else {
-        if (!edge.start) edge.start = new Vertex((max.y - fb) / fm, max.y);
+        if (!edge.start) edge.start = createVertex((max.y - fb) / fm, max.y, diagram, edge);
         else if (edge.start.y < min.y) return false;
 
-        edge.end = new Vertex((min.y - fb) / fm, min.y);
+        edge.end = createVertex((min.y - fb) / fm, min.y, diagram, edge);
       }
     }
     // closer to horizontal than vertical, connect start point to the
@@ -810,11 +828,7 @@ function connectEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean 
 function clipEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean {
   const { min, max } = aabb;
 
-  const {
-    start: { x: ax, y: ay },
-    end: { x: bx, y: by },
-  } = edge;
-  const delta = { x: bx - ax, y: by - ay };
+  const delta = Point.subtract(edge.end, edge.start);
   let t0 = 0;
   let t1 = 1;
 
@@ -832,13 +846,13 @@ function clipEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean {
     return true;
   };
   // left
-  if (!edgeIsInBounds(-delta.x, ax - min.x)) return false;
+  if (!edgeIsInBounds(-delta.x, edge.start.x - min.x)) return false;
   // right
-  if (!edgeIsInBounds(delta.x, max.x - ax)) return false;
+  if (!edgeIsInBounds(delta.x, max.x - edge.start.x)) return false;
   // bottom
-  if (!edgeIsInBounds(-delta.y, ay - min.y)) return false;
+  if (!edgeIsInBounds(-delta.y, edge.start.y - min.y)) return false;
   // top
-  if (!edgeIsInBounds(delta.y, max.y - ay)) return false;
+  if (!edgeIsInBounds(delta.y, max.y - edge.start.y)) return false;
 
   // if we reach this point, Voronoi edge is within bbox
 
@@ -847,7 +861,8 @@ function clipEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean {
   // than modifying the existing one, since the existing
   // one is likely shared with at least another edge
   if (t0 > 0) {
-    edge.start = createVertex(ax + t0 * delta.x, ay + t0 * delta.y, diagram, edge);
+    removeVertex(edge.start, edge);
+    edge.start = createVertex(edge.start.x + t0 * delta.x, edge.start.y + t0 * delta.y, diagram, edge);
   }
 
   // if t1 < 1, vb needs to change
@@ -855,7 +870,8 @@ function clipEdgeToBounds(diagram: Diagram, edge: Edge, aabb: AABB): boolean {
   // than modifying the existing one, since the existing
   // one is likely shared with at least another edge
   if (t1 < 1) {
-    edge.end = createVertex(ax + t1 * delta.x, ay + t1 * delta.y, diagram, edge);
+    removeVertex(edge.end, edge);
+    edge.end = createVertex(edge.start.x + t1 * delta.x, edge.start.y + t1 * delta.y, diagram, edge);
   }
 
   return true;
@@ -886,17 +902,15 @@ class CellEdge {
     }
   }
 
-  get start(): Point {
-    if (this.sharedEdge.left === this.site) return this.sharedEdge.start;
-    else return this.sharedEdge.end;
-  }
-  get end(): Point {
-    if (this.sharedEdge.left === this.site) return this.sharedEdge.end;
-    else return this.sharedEdge.start;
-  }
-
   get length(): number {
     return this.sharedEdge.length;
+  }
+
+  get start(): Vertex {
+    return this.sharedEdge.left === this.site ? this.sharedEdge.start : this.sharedEdge.end;
+  }
+  get end(): Vertex {
+    return this.sharedEdge.left === this.site ? this.sharedEdge.end : this.sharedEdge.start;
   }
 }
 
@@ -943,6 +957,38 @@ export class Cell {
     centroid.y /= this.area;
     return centroid;
   }
+
+  get neighbors(): Cell[] {
+    return this.edges
+      .map(edge => {
+        if (edge.sharedEdge.left === this.site && edge.sharedEdge.right) return edge.sharedEdge.right.cell;
+        else if (edge.sharedEdge.left) return edge.sharedEdge.left.cell;
+      })
+      .filter(neighbor => neighbor);
+  }
+
+  get boundingAABB(): AABB {
+    const aabb = new AABB(new Point(Infinity, Infinity), new Point(Infinity, Infinity));
+    this.edges.forEach(edge => {
+      const start = edge.start;
+      if (start.x < aabb.min.x) aabb.min.x = start.x;
+      else if (start.x > aabb.max.x) aabb.max.x = start.x;
+      if (start.y < aabb.min.y) aabb.min.y = start.y;
+      else if (start.y > aabb.max.y) aabb.max.y = start.y;
+    });
+    return aabb;
+  }
+
+  contains(point: Point): boolean {
+    for (let i = 0; i < this.edges.length; ++i) {
+      const edge = this.edges[i];
+      const start = edge.start;
+      const end = edge.end;
+      const cross = (point.y - start.y) * (end.x - start.x) - (point.x - start.x) * (end.y - start.y);
+      if (cross >= 0) return false;
+    }
+    return true;
+  }
 }
 
 export default class Diagram {
@@ -985,8 +1031,11 @@ export default class Diagram {
       // edge is removed if:
       //   it is wholly outside the bounding box
       //   it is actually a point rather than a line
-      if (connectEdgeToBounds(this, edge, aabb) && clipEdgeToBounds(this, edge, aabb))
+      if (connectEdgeToBounds(this, edge, aabb) && clipEdgeToBounds(this, edge, aabb)) {
         if (!pointsEqualWithEpsilon(edge.start, edge.end)) return true;
+      }
+      removeVertex(edge.start, edge);
+      removeVertex(edge.end, edge);
       delete edge.start;
       delete edge.end;
       return false;
@@ -997,10 +1046,10 @@ export default class Diagram {
 
     this.cells = this.cells.filter(cell => {
       // trim non fully-defined halfedges and sort them counterclockwise
-      cell.edges = cell.edges.filter(he => he.sharedEdge.start || he.sharedEdge.end);
+      cell.edges = cell.edges.filter(edge => edge.start && edge.end);
       cell.edges.sort(compareCellEdges);
       if (!cell.edges.length) {
-        cell.site.cell = undefined;
+        cell.site = undefined;
         return false;
       }
       // close open cells
@@ -1039,9 +1088,12 @@ export default class Diagram {
         }
         cell.edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
       }
+      cell.vertices = cell.vertices.filter(vertex => vertex.edges.size);
+      cell.vertices.forEach(vertex => vertex.cells.push(cell));
       return true;
     });
     this.sites = this.cells.map(cell => cell.site);
+    this.vertices = this.vertices.filter(vertex => vertex.edges.size);
     this._finished = true;
   }
 }

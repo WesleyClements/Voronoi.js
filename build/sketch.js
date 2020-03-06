@@ -26,36 +26,40 @@ window.setup = () => {
 window.draw = () => {
     diagram = new Diagram(points);
     diagram.finish(bounds);
+    diagram.cells.forEach(cell => { });
     background(150);
+    strokeWeight(1);
     stroke(color(0, 0, 0));
+    diagram.edges.forEach(edge => {
+        let s = edge.start;
+        let e = edge.end;
+        if (!s || !e)
+            return;
+        line(s.x, s.y, e.x, e.y);
+    });
     points.forEach((site) => {
-        if (diagram) {
-            let { cell } = site;
-            if (!cell)
+        let { cell } = site;
+        if (!cell)
+            return;
+        if (cell.edges.length < 3)
+            return;
+        strokeWeight(1);
+        stroke(color(0, 0, 0));
+        fill(site.color);
+        beginShape();
+        cell.edges.forEach((edge) => {
+            const v = edge.end;
+            if (!v)
                 return;
-            if (cell.edges.length < 3)
-                return;
-            strokeWeight(1);
-            stroke(color(0, 0, 0));
-            fill(site.color);
-            beginShape();
-            cell.edges.forEach((edge) => {
-                const v = edge.end;
-                if (!v)
-                    return;
-                vertex(v.x, v.y);
-            });
-            endShape(CLOSE);
-        }
+            vertex(v.x, v.y);
+        });
+        endShape(CLOSE);
+        cell.vertices.forEach((vertex) => {
+            stroke(color(0, 0, 255));
+            line(site.x, site.y, vertex.x, vertex.y);
+        });
     });
-    diagram.vertices.forEach(p => {
-        strokeWeight(10);
-        stroke(color(0, 0, 255));
-        point(p.x, p.y);
-    });
-    if (diagram) {
-        points = diagram.getRelaxedSites(0.02);
-    }
+    points = diagram.getRelaxedSites(0.02);
     if (points.length < maxPointCount && frameCount % 10 === 0) {
         const point = new Point(width / 2 + Math.random() - 0.5, height / 2 + Math.random() - 0.5);
         point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
