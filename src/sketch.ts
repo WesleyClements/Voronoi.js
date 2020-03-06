@@ -8,6 +8,7 @@ import { AABBQuadTree } from './util/QuadTree.js';
 declare global {
   interface Window {
     lerpT: number;
+    defectiveCell: Cell;
     setup: () => void;
     draw: () => void;
     windowResized: () => void;
@@ -58,6 +59,11 @@ window.setup = () => {
   }
 };
 
+window.windowResized = () => {
+  updateDimensions();
+  resizeCanvas(width, height);
+};
+
 window.draw = () => {
   diagram = new Diagram(points);
   diagram.finish(bounds);
@@ -92,20 +98,13 @@ window.draw = () => {
     let { cell } = site;
     if (!cell) return;
     if (cell.edges.length < 3) return;
-    strokeWeight(1);
-    stroke(color(0, 0, 0));
     if (cell === highCell) fill(color(255, 0, 0));
     else fill(site.color);
-    beginShape();
-    cell.edges.forEach((edge: any) => {
-      const v = edge.end;
-      if (!v) return;
-      vertex(v.x, v.y);
-    });
-    endShape(CLOSE);
+    stroke(color(0, 0, 0));
+    drawCell(cell);
+    stroke(color(0, 0, 255));
     cell.vertices.forEach((vertex: any) => {
-      stroke(color(0, 0, 255));
-      line(site.x, site.y, vertex.x, vertex.y);
+      line(cell.site.x, cell.site.y, vertex.x, vertex.y);
     });
   });
 
@@ -121,7 +120,12 @@ window.draw = () => {
   }
 };
 
-window.windowResized = () => {
-  updateDimensions();
-  resizeCanvas(width, height);
-};
+function drawCell(cell: Cell) {
+  beginShape();
+  cell.edges.forEach((edge: any) => {
+    const v = edge.end;
+    if (!v) return;
+    vertex(v.x, v.y);
+  });
+  endShape(CLOSE);
+}

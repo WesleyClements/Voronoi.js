@@ -6,7 +6,7 @@
     "sourceRoot": "./src/",
     "rootDir": "src",
     "outDir": "build",
-    "sourceMap": true,
+    "inlineSourceMap": true,
     "noImplicitAny": true,
     "module": "ES6"
   }

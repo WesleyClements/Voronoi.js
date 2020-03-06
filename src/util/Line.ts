@@ -1,5 +1,18 @@
 import Point from './Point.js';
 export default class Line {
+  static getIntersection(a: Line, b: Line): Point {
+    let det = a.dy * b.dx - b.dy * a.dx;
+    if (!det) return;
+    return {
+      x: (b.dx * a.intercept - a.dx * b.intercept) / det,
+      y: (a.dy * b.intercept - b.dy * a.intercept) / det,
+    } as Point;
+  }
+
+  static getPerpendicularBisector(a: Point, b: Point): Line {
+    return new Line(a, b).getPerpendicular(Point.midpoint(a, b));
+  }
+
   dy: number;
   dx: number;
   intercept: number;
@@ -26,19 +39,6 @@ export default class Line {
       this.dx = b;
       this.intercept = c;
     }
-  }
-
-  static getIntersection(a: Line, b: Line): Point {
-    let det = a.dy * b.dx - b.dy * a.dx;
-    if (!det) return;
-    return {
-      x: (b.dx * a.intercept - a.dx * b.intercept) / det,
-      y: (a.dy * b.intercept - b.dy * a.intercept) / det,
-    } as Point;
-  }
-
-  static getPerpendicularBisector(a: Point, b: Point): Line {
-    return new Line(a, b).getPerpendicular(Point.midpoint(a, b));
   }
 
   getPerpendicular(point: Point): Line {

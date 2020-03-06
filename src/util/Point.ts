@@ -1,11 +1,4 @@
 export default class Point {
-  x: number;
-  y: number;
-
-  constructor(x: number = 0, y: number = 0) {
-    this.x = x;
-    this.y = y;
-  }
   static clone(point: Point) {
     return new Point(point.x, point.y);
   }
@@ -41,6 +34,14 @@ export default class Point {
 
   static scale(point: Point, scalar: number): Point {
     return new Point(point.x * scalar, point.y * scalar);
+  }
+
+  x: number;
+  y: number;
+
+  constructor(x: number = 0, y: number = 0) {
+    this.x = x;
+    this.y = y;
   }
 
   add?(other: Point): Point {

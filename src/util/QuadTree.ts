@@ -52,7 +52,7 @@ function getSubBounds(bounds: AABB): AABB[] {
   ];
 }
 
-export interface QuadTreeNode<T> {
+interface QuadTreeNode<T> {
   quadTree: QuadTree<T>;
   bounds: AABB;
   depth: number;
@@ -185,7 +185,7 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
 
 //#region QuadTrees
 
-export interface QuadTree<T> {
+interface QuadTree<T> {
   /**
    * The root node of the QuadTree which covers the entire area being segmented.
    * @property root

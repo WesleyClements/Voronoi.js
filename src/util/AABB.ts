@@ -1,6 +1,10 @@
 import Point from './Point.js';
 
 export default class AABB {
+  static clone(aabb: AABB): AABB {
+    return new AABB(Point.clone(aabb.min), Point.clone(aabb.max));
+  }
+
   min: Point;
   max: Point;
 
