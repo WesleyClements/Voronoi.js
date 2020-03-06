@@ -15,10 +15,12 @@ function updateDimensions() {
     width = windowWidth - 40;
     height = windowHeight - 40;
     bounds = new AABB(new Point(0, 0), new Point(width, height));
-    if (!bounds.contains(generationPoint))
+    if (!bounds.contains(generationPoint)) {
         generationPoint = new Point(width / 2, height / 2);
+    }
 }
 window.setup = () => {
+    window.lerpT = 0.02;
     updateDimensions();
     generationPoint = new Point(width / 2, height / 2);
     createCanvas(width, height);
@@ -78,7 +80,7 @@ window.draw = () => {
             line(site.x, site.y, vertex.x, vertex.y);
         });
     });
-    points = diagram.getRelaxedSites(0.02);
+    points = diagram.getRelaxedSites(window.lerpT);
     if (mouseIsPressed) {
         generationPoint = new Point(min(max(0, mouseX), width), min(max(0, mouseY), height));
     }
