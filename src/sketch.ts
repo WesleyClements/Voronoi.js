@@ -34,16 +34,18 @@ let height: number;
 
 let bounds: AABB;
 
-let frameCount: number = 0;
+let generationPoint: Point;
 
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
   bounds = new AABB(new Point(0, 0), new Point(width, height));
+  if (!bounds.contains(generationPoint)) generationPoint = new Point(width / 2, height / 2);
 }
 
 window.setup = () => {
   updateDimensions();
+  generationPoint = new Point(width / 2, height / 2);
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
     const point: ColoredPoint = new Point(random() * width, random() * height);
@@ -102,14 +104,17 @@ window.draw = () => {
       line(site.x, site.y, vertex.x, vertex.y);
     });
   });
+
   points = diagram.getRelaxedSites(0.02);
 
+  if (mouseIsPressed) {
+    generationPoint = new Point(min(max(0, mouseX), width), min(max(0, mouseY), height));
+  }
   if (points.length < maxPointCount && frameCount % 10 === 0) {
-    const point: ColoredPoint = new Point(width / 2 + Math.random() - 0.5, height / 2 + Math.random() - 0.5);
+    const point: ColoredPoint = Point.add(generationPoint, new Point(random() - 0.5, random() - 0.5));
     point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
     points.push(point as Point);
   }
-  frameCount++;
 };
 
 window.windowResized = () => {

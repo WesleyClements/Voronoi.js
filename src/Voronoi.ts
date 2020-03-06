@@ -1085,6 +1085,10 @@ export default class Diagram {
         // walk leftward along top side
         else if (equalWithEpsilon(end.y, min.y) && greaterThanWithEpsilon(end.x, min.x)) {
           edge.end = createVertex(equalWithEpsilon(start.y, min.y) ? start.x : min.x, min.y, this, edge);
+        } else return false;
+        if (i > 1000) {
+          console.log(cell.edges);
+          return false;
         }
         cell.edges.splice(i + 1, 0, new CellEdge(cell.site, edge));
       }
