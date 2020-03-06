@@ -2,7 +2,8 @@ import { Color } from 'p5';
 
 import Point from './util/Point.js';
 import AABB from './util/AABB.js';
-import Diagram from './Voronoi.js';
+import Diagram, { Cell } from './Voronoi.js';
+import { AABBQuadTree } from './util/QuadTree.js';
 
 declare global {
   interface Window {
@@ -17,11 +18,16 @@ interface ColoredPoint extends Point {
   color?: Color;
 }
 
+interface CellAABB extends AABB {
+  cell?: Cell;
+}
+
 const pointCount: number = 20;
 const maxPointCount: number = 400;
 let points: ColoredPoint[] = [];
 
 let diagram: Diagram;
+let quadTree: AABBQuadTree<CellAABB>;
 
 let width: number;
 let height: number;
@@ -50,7 +56,21 @@ window.draw = () => {
   diagram = new Diagram(points);
   diagram.finish(bounds);
 
-  diagram.cells.forEach(cell => {});
+  quadTree = new AABBQuadTree<CellAABB>(
+    new AABB(Point.subtract(bounds.min, new Point(10, 10)), Point.add(bounds.max, new Point(10, 10))),
+    20,
+  );
+  diagram.cells.forEach(cell => {
+    let cellAABB: CellAABB = cell.boundingAABB;
+    cellAABB.cell = cell;
+    quadTree.insert(cellAABB);
+  });
+
+  const mousePoint = new Point(mouseX, mouseY);
+  let highCell: Cell;
+  quadTree.retrieve(new AABB(mousePoint, mousePoint)).forEach(cellAABB => {
+    if (cellAABB.cell.contains(mousePoint)) highCell = cellAABB.cell;
+  });
 
   background(150);
 
@@ -68,7 +88,8 @@ window.draw = () => {
     if (cell.edges.length < 3) return;
     strokeWeight(1);
     stroke(color(0, 0, 0));
-    fill(site.color);
+    if (cell === highCell) fill(color(255, 0, 0));
+    else fill(site.color);
     beginShape();
     cell.edges.forEach((edge: any) => {
       const v = edge.end;

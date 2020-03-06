@@ -1,10 +1,12 @@
 import Point from './util/Point.js';
 import AABB from './util/AABB.js';
 import Diagram from './Voronoi.js';
+import { AABBQuadTree } from './util/QuadTree.js';
 const pointCount = 20;
 const maxPointCount = 400;
 let points = [];
 let diagram;
+let quadTree;
 let width;
 let height;
 let bounds;
@@ -26,7 +28,18 @@ window.setup = () => {
 window.draw = () => {
     diagram = new Diagram(points);
     diagram.finish(bounds);
-    diagram.cells.forEach(cell => { });
+    quadTree = new AABBQuadTree(new AABB(Point.subtract(bounds.min, new Point(10, 10)), Point.add(bounds.max, new Point(10, 10))), 20);
+    diagram.cells.forEach(cell => {
+        let cellAABB = cell.boundingAABB;
+        cellAABB.cell = cell;
+        quadTree.insert(cellAABB);
+    });
+    const mousePoint = new Point(mouseX, mouseY);
+    let highCell;
+    quadTree.retrieve(new AABB(mousePoint, mousePoint)).forEach(cellAABB => {
+        if (cellAABB.cell.contains(mousePoint))
+            highCell = cellAABB.cell;
+    });
     background(150);
     strokeWeight(1);
     stroke(color(0, 0, 0));
@@ -45,7 +58,10 @@ window.draw = () => {
             return;
         strokeWeight(1);
         stroke(color(0, 0, 0));
-        fill(site.color);
+        if (cell === highCell)
+            fill(color(255, 0, 0));
+        else
+            fill(site.color);
         beginShape();
         cell.edges.forEach((edge) => {
             const v = edge.end;
