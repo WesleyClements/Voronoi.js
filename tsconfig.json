@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES6",
-    "removeComments": true,
-    "preserveConstEnums": true,
-    "sourceRoot": "./src/",
+    "module": "ES6",
     "rootDir": "src",
     "outDir": "build",
+    "sourceRoot": "./src/",
     "inlineSourceMap": true,
+    "alwaysStrict": true,
     "noImplicitAny": true,
-    "module": "ES6"
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "preserveConstEnums": true,
+    "removeComments": true
   }
 }

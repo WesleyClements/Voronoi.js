@@ -25,6 +25,7 @@ export default class AABB {
   }
 
   contains(obj: Point | AABB): boolean {
+    if (obj == null) throw new Error('obj is null');
     if (obj instanceof Point) {
       if (obj.x < this.min.x) return false;
       if (obj.x > this.max.x) return false;
@@ -36,9 +37,11 @@ export default class AABB {
       if (!this.contains(obj.max)) return false;
       return true;
     }
+    throw new Error('not implemented yet');
   }
 
   intersects(obj: AABB): boolean {
+    if (obj == null) throw new Error('obj is null');
     if (obj instanceof AABB) {
       if (obj.max.x < this.min.x) return false;
       if (obj.min.x > this.max.x) return false;
@@ -46,5 +49,6 @@ export default class AABB {
       if (obj.min.y > this.max.y) return false;
       return true;
     }
+    throw new Error('not implemented yet');
   }
 }

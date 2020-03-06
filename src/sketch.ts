@@ -42,7 +42,7 @@ function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
   bounds = new AABB(new Point(0, 0), new Point(width, height));
-  if (!bounds.contains(generationPoint)) {
+  if (generationPoint && !bounds.contains(generationPoint)) {
     generationPoint = new Point(width / 2, height / 2);
   }
 }
@@ -55,7 +55,7 @@ window.setup = () => {
   for (let i = 0; i < pointCount; ++i) {
     const point: ColoredPoint = new Point(random() * width, random() * height);
     point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
-    points.push(point as Point);
+    points.push(point);
   }
 };
 

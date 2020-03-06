@@ -87,7 +87,7 @@ class PointQuadTreeNode<T extends Point> implements QuadTreeNode<T> {
   }
 
   getNode(item: T): PointQuadTreeNode<T> {
-    if (!this.nodes) return;
+    if (!this.nodes) return undefined;
     return this.nodes[getIndex(item, this.bounds.center)];
   }
 
@@ -110,7 +110,7 @@ class PointQuadTreeNode<T extends Point> implements QuadTreeNode<T> {
   }
 
   retrieve(item: T): T[] {
-    if (this.nodes) this.getNode(item).retrieve(item);
+    if (this.nodes) return this.getNode(item).retrieve(item);
     else return Array.from(this.children);
   }
 
@@ -143,7 +143,7 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
   }
 
   getNode(item: T): AABBQuadTreeNode<T> {
-    if (!this.nodes) return;
+    if (!this.nodes) return undefined;
     return this.nodes[getIndex(item.center, this.bounds.center)];
   }
 
@@ -162,8 +162,8 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
       this.nodes = getSubBounds(this.bounds).map(aabb => new AABBQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1));
 
       this.children = this.children.filter(child => this.insert(child));
-      return true;
     }
+    return true;
   }
 
   retrieve(item: T): T[] {

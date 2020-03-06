@@ -2,7 +2,7 @@ import Point from './Point.js';
 export default class Line {
   static getIntersection(a: Line, b: Line): Point {
     let det = a.dy * b.dx - b.dy * a.dx;
-    if (!det) return;
+    if (!det) return undefined;
     return {
       x: (b.dx * a.intercept - a.dx * b.intercept) / det,
       y: (a.dy * b.intercept - b.dy * a.intercept) / det,
@@ -46,11 +46,11 @@ export default class Line {
   }
 
   getY(x: number): number {
-    if (!this.dx) return;
+    if (!this.dx) return undefined;
     return (this.intercept - this.dy * x) / this.dx;
   }
   getX(y: number): number {
-    if (!this.dy) return;
+    if (!this.dy) return undefined;
     return (this.intercept - this.dx * y) / this.dy;
   }
 }

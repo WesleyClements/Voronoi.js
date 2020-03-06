@@ -970,15 +970,16 @@ export class Cell {
     }, 0);
   }
   get centroid(): Point {
-    const centroid = new Point(0, 0);
-    this.triangles.forEach(tri => {
-      let circum = tri.circumcenter;
-      if (!circum) return;
-      centroid.x += circum.x * tri.area;
-      centroid.y += circum.y * tri.area;
-    });
-    centroid.x /= this.area;
-    centroid.y /= this.area;
+    const centroid: Point = this.triangles.reduce((sum: Point, tri: Triangle): Point => {
+      const centroid = tri.centroid;
+      const area = tri.area;
+      sum.x += centroid.x * area;
+      sum.y += centroid.y * area;
+      return sum;
+    }, new Point(0, 0));
+    const totalArea = this.area;
+    centroid.x /= totalArea;
+    centroid.y /= totalArea;
     return centroid;
   }
 
@@ -987,6 +988,7 @@ export class Cell {
       .map(edge => {
         if (edge.sharedEdge.left === this.site && edge.sharedEdge.right) return edge.sharedEdge.right.cell;
         else if (edge.sharedEdge.left) return edge.sharedEdge.left.cell;
+        return null;
       })
       .filter(neighbor => neighbor);
   }
@@ -1076,7 +1078,7 @@ export default class Diagram {
   }
 
   getRelaxedSites(t: number = 1): Site[] {
-    if (!this._finished) return;
+    if (!this._finished) return null;
     return this.sites.map(site => {
       const newPoint = site.cell.centroid;
       const x = site.x * (1 - t) + newPoint.x * t;
