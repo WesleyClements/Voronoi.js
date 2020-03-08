@@ -4,6 +4,7 @@ import Vector2 from './util/Vector2.js';
 import AABB from './util/AABB.js';
 import Diagram, { Cell } from './Voronoi.js';
 import { AABBQuadTree } from './util/QuadTree.js';
+import LineSegment from './util/LineSegment.js';
 
 declare global {
   interface Window {
@@ -46,6 +47,9 @@ function updateDimensions() {
     generationPoint = new Vector2(width / 2, height / 2);
   }
 }
+function getMouseLocation() {
+  return new Vector2(mouseX, height - mouseY);
+}
 
 window.setup = () => {
   window.lerpT = 0.02;
@@ -65,6 +69,9 @@ window.windowResized = () => {
 };
 
 window.draw = () => {
+  scale(1, -1);
+  translate(0, -height);
+
   diagram = new Diagram(points);
   diagram.finish(bounds);
 
@@ -79,34 +86,28 @@ window.draw = () => {
     quadTree.insert(cellAABB);
   });
 
-  const mousePoint = new Vector2(mouseX, mouseY);
+  const mouse = getMouseLocation();
   let highCell: Cell;
-  quadTree.retrieve(new AABB(mousePoint, mousePoint)).forEach(cellAABB => {
-    if (cellAABB.cell.contains(mousePoint)) highCell = cellAABB.cell;
+  quadTree.retrieve(new AABB(mouse, mouse)).forEach(cellAABB => {
+    if (cellAABB.cell.contains(mouse)) highCell = cellAABB.cell;
   });
 
   background(150);
 
   strokeWeight(1);
   stroke(color(0, 0, 0));
-  diagram.edges.forEach(edge => {
-    let s = edge.start;
-    let e = edge.end;
-    if (!s || !e) return;
-    line(s.x, s.y, e.x, e.y);
-  });
-  points.forEach((site: ColoredPoint & { cell?: any }) => {
-    let { cell } = site;
-    if (!cell) return;
-    if (cell.edges.length < 3) return;
+  diagram.edges.forEach(edge => edge.draw());
+  diagram.sites.forEach((site: ColoredPoint & { cell?: Cell }) => {
+    const { cell } = site;
+    if (!cell || cell.edges.length < 3) return;
     if (cell === highCell) fill(color(255, 0, 0));
     else fill(site.color);
+
     stroke(color(0, 0, 0));
     drawCell(cell);
+
     stroke(color(0, 0, 255));
-    cell.vertices.forEach((vertex: any) => {
-      line(cell.site.x, cell.site.y, vertex.x, vertex.y);
-    });
+    cell.vertices.forEach(vertex => LineSegment.draw(site, vertex));
   });
 
   points = diagram.getRelaxedSites(window.lerpT);
