@@ -1,13 +1,13 @@
-import Point from './Point.js';
+import Vector2 from './Vector2.js';
 import Line from './Line.js';
 import LineSegment from './LineSegment.js';
 
 export default class Triangle {
-  a: Point;
-  b: Point;
-  c: Point;
+  a: Vector2;
+  b: Vector2;
+  c: Vector2;
 
-  constructor(a: Point, b: Point, c: Point) {
+  constructor(a: Vector2, b: Vector2, c: Vector2) {
     if (a == null) throw new Error('a is null');
     if (b == null) throw new Error('b is null');
     if (c == null) throw new Error('c is null');
@@ -46,11 +46,11 @@ export default class Triangle {
     else return 0;
   }
 
-  get centroid(): Point {
-    return new Point((this.a.x + this.b.x + this.c.x) / 3, (this.a.y + this.b.y + this.c.y) / 3);
+  get centroid(): Vector2 {
+    return new Vector2((this.a.x + this.b.x + this.c.x) / 3, (this.a.y + this.b.y + this.c.y) / 3);
   }
 
-  get circumcenter(): Point {
+  get circumcenter(): Vector2 {
     return Line.getIntersection(
       Line.getPerpendicularBisector(this.a, this.b),
       Line.getPerpendicularBisector(this.a, this.c),

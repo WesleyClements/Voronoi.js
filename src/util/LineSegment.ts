@@ -1,17 +1,18 @@
-import Point from './Point.js';
+import Vector2 from './Vector2.js';
 export default class LineSegment {
-  start: Point;
-  end: Point;
-  constructor(start: Point, end: Point) {
+  start: Vector2;
+  end: Vector2;
+
+  constructor(start: Vector2, end: Vector2) {
     this.start = start;
     this.end = end;
   }
 
   get length() {
-    return Point.distance(this.start, this.end);
+    return Vector2.distance(this.start, this.end);
   }
 
   get midpoint() {
-    return Point.midpoint(this.start, this.end);
+    return Vector2.midpoint(this.start, this.end);
   }
 }

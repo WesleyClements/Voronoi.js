@@ -1,6 +1,6 @@
 import { Color } from 'p5';
 
-import Point from './util/Point.js';
+import Vector2 from './util/Vector2.js';
 import AABB from './util/AABB.js';
 import Diagram, { Cell } from './Voronoi.js';
 import { AABBQuadTree } from './util/QuadTree.js';
@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-interface ColoredPoint extends Point {
+interface ColoredPoint extends Vector2 {
   color?: Color;
 }
 
@@ -36,24 +36,24 @@ let height: number;
 
 let bounds: AABB;
 
-let generationPoint: Point;
+let generationPoint: Vector2;
 
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
-  bounds = new AABB(new Point(0, 0), new Point(width, height));
+  bounds = new AABB(new Vector2(0, 0), new Vector2(width, height));
   if (generationPoint && !bounds.contains(generationPoint)) {
-    generationPoint = new Point(width / 2, height / 2);
+    generationPoint = new Vector2(width / 2, height / 2);
   }
 }
 
 window.setup = () => {
   window.lerpT = 0.02;
   updateDimensions();
-  generationPoint = new Point(width / 2, height / 2);
+  generationPoint = new Vector2(width / 2, height / 2);
   createCanvas(width, height);
   for (let i = 0; i < pointCount; ++i) {
-    const point: ColoredPoint = new Point(random() * width, random() * height);
+    const point: ColoredPoint = new Vector2(random() * width, random() * height);
     point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
     points.push(point);
   }
@@ -69,8 +69,9 @@ window.draw = () => {
   diagram.finish(bounds);
 
   quadTree = new AABBQuadTree<CellAABB>(
-    new AABB(Point.subtract(bounds.min, new Point(10, 10)), Point.add(bounds.max, new Point(10, 10))),
+    new AABB(Vector2.subtract(bounds.min, new Vector2(10, 10)), Vector2.add(bounds.max, new Vector2(10, 10))),
     20,
+    10,
   );
   diagram.cells.forEach(cell => {
     let cellAABB: CellAABB = cell.boundingAABB;
@@ -78,7 +79,7 @@ window.draw = () => {
     quadTree.insert(cellAABB);
   });
 
-  const mousePoint = new Point(mouseX, mouseY);
+  const mousePoint = new Vector2(mouseX, mouseY);
   let highCell: Cell;
   quadTree.retrieve(new AABB(mousePoint, mousePoint)).forEach(cellAABB => {
     if (cellAABB.cell.contains(mousePoint)) highCell = cellAABB.cell;
@@ -94,7 +95,7 @@ window.draw = () => {
     if (!s || !e) return;
     line(s.x, s.y, e.x, e.y);
   });
-  points.forEach((site: Point & { cell?: any; color: Color }) => {
+  points.forEach((site: ColoredPoint & { cell?: any }) => {
     let { cell } = site;
     if (!cell) return;
     if (cell.edges.length < 3) return;
@@ -111,12 +112,12 @@ window.draw = () => {
   points = diagram.getRelaxedSites(window.lerpT);
 
   if (mouseIsPressed) {
-    generationPoint = new Point(min(max(0, mouseX), width), min(max(0, mouseY), height));
+    generationPoint = new Vector2(min(max(0, mouseX), width), min(max(0, mouseY), height));
   }
   if (points.length < maxPointCount && frameCount % 10 === 0) {
-    const point: ColoredPoint = Point.add(generationPoint, new Point(random() - 0.5, random() - 0.5));
+    const point: ColoredPoint = Vector2.add(generationPoint, new Vector2(random() - 0.5, random() - 0.5));
     point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
-    points.push(point as Point);
+    points.push(point as Vector2);
   }
 };
 

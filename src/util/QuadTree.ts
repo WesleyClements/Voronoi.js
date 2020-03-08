@@ -27,7 +27,7 @@
  * @module QuadTree
  **/
 
-import Point from './Point.js';
+import Vector2 from './Vector2.js';
 import AABB from './AABB.js';
 
 //#region QuadTreeNodes
@@ -36,7 +36,7 @@ const TOP_RIGHT = 1;
 const TOP_LEFT = 2;
 const BOTTOM_RIGHT = 3;
 
-function getIndex(point: Point, center: Point): number {
+function getIndex(point: Vector2, center: Vector2): number {
   const right = point.x > center.x;
   const top = point.y > center.y;
   return top ? (right ? TOP_RIGHT : TOP_LEFT) : right ? BOTTOM_RIGHT : BOTTOM_LEFT;
@@ -47,8 +47,8 @@ function getSubBounds(bounds: AABB): AABB[] {
   return [
     new AABB(bounds.min, center), // BOTTOM_LEFT
     new AABB(center, bounds.max), // TOP_RIGHT
-    new AABB(new Point(bounds.min.x, center.y), new Point(center.x, bounds.max.y)), // TOP_LEFT
-    new AABB(new Point(center.x, bounds.min.y), new Point(bounds.max.x, center.y)), // BOTTOM_RIGHT
+    new AABB(new Vector2(bounds.min.x, center.y), new Vector2(center.x, bounds.max.y)), // TOP_LEFT
+    new AABB(new Vector2(center.x, bounds.min.y), new Vector2(bounds.max.x, center.y)), // BOTTOM_RIGHT
   ];
 }
 
@@ -70,7 +70,7 @@ interface QuadTreeNode<T> {
 
 /************** PointQuadTreeNode ********************/
 
-class PointQuadTreeNode<T extends Point> implements QuadTreeNode<T> {
+class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
   quadTree: QuadTree<T>;
   bounds: AABB;
   depth: number;
@@ -228,7 +228,7 @@ interface QuadTree<T> {
  * @param {Number} maxChildren The maximum number of children that a node can contain before it is split into sub-nodes.
  * @param {Number} maxDepth The maximum number of levels that the quadtree will create. Default is 4.
  **/
-export class PointQuadTree<T extends Point> implements QuadTree<T> {
+export class PointQuadTree<T extends Vector2> implements QuadTree<T> {
   root: PointQuadTreeNode<T>;
   maxChildren: number;
   maxDepth: number;

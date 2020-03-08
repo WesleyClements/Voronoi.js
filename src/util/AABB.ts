@@ -1,14 +1,14 @@
-import Point from './Point.js';
+import Vector2 from './Vector2.js';
 
 export default class AABB {
   static clone(aabb: AABB): AABB {
-    return new AABB(Point.clone(aabb.min), Point.clone(aabb.max));
+    return new AABB(Vector2.clone(aabb.min), Vector2.clone(aabb.max));
   }
 
-  min: Point;
-  max: Point;
+  min: Vector2;
+  max: Vector2;
 
-  constructor(min: Point, max: Point) {
+  constructor(min: Vector2, max: Vector2) {
     this.min = min;
     this.max = max;
   }
@@ -20,13 +20,13 @@ export default class AABB {
     return this.max.y - this.min.y;
   }
 
-  get center(): Point {
-    return Point.midpoint(this.min, this.max);
+  get center(): Vector2 {
+    return Vector2.midpoint(this.min, this.max);
   }
 
-  contains(obj: Point | AABB): boolean {
+  contains(obj: Vector2 | AABB): boolean {
     if (obj == null) throw new Error('obj is null');
-    if (obj instanceof Point) {
+    if (obj instanceof Vector2) {
       if (obj.x < this.min.x) return false;
       if (obj.x > this.max.x) return false;
       if (obj.y < this.min.y) return false;

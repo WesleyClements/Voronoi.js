@@ -1,16 +1,16 @@
-import Point from './Point.js';
+import Vector2 from './Vector2.js';
 export default class Line {
-  static getIntersection(a: Line, b: Line): Point {
+  static getIntersection(a: Line, b: Line): Vector2 {
     let det = a.dy * b.dx - b.dy * a.dx;
     if (!det) return undefined;
     return {
       x: (b.dx * a.intercept - a.dx * b.intercept) / det,
       y: (a.dy * b.intercept - b.dy * a.intercept) / det,
-    } as Point;
+    } as Vector2;
   }
 
-  static getPerpendicularBisector(a: Point, b: Point): Line {
-    return new Line(a, b).getPerpendicular(Point.midpoint(a, b));
+  static getPerpendicularBisector(a: Vector2, b: Vector2): Line {
+    return new Line(a, b).getPerpendicular(Vector2.midpoint(a, b));
   }
 
   dy: number;
@@ -18,15 +18,15 @@ export default class Line {
   intercept: number;
 
   constructor();
-  constructor(a: Point, b: Point);
+  constructor(a: Vector2, b: Vector2);
   constructor(a: number, b: number, c: number);
-  constructor(a?: Point | number, b?: Point | number, c?: number) {
+  constructor(a?: Vector2 | number, b?: Vector2 | number, c?: number) {
     if (a == null) return;
     if (b == null) return;
 
     if (typeof a === 'object') {
-      a = a as Point;
-      b = b as Point;
+      a = a as Vector2;
+      b = b as Vector2;
 
       this.dy = b.y - a.y;
       this.dx = a.x - b.x;
@@ -41,7 +41,7 @@ export default class Line {
     }
   }
 
-  getPerpendicular(point: Point): Line {
+  getPerpendicular(point: Vector2): Line {
     return new Line(-this.dx, this.dy, -this.dx * point.x + this.dy * point.y);
   }
 
