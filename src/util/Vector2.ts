@@ -1,14 +1,35 @@
 import { equalWithEpsilon } from './FloatUtil.js';
 
 export default class Vector2 {
+  static get zero(): Vector2 {
+    return new Vector2();
+  }
+  static get up(): Vector2 {
+    return new Vector2(0, 1);
+  }
+  static get down(): Vector2 {
+    return new Vector2(0, -1);
+  }
+  static get right(): Vector2 {
+    return new Vector2(1, 0);
+  }
+  static get left(): Vector2 {
+    return new Vector2(-1, 0);
+  }
+  static get infinity(): Vector2 {
+    return new Vector2(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  }
+
   static clone(point: Vector2) {
     return new Vector2(point.x, point.y);
   }
 
   static equal(a: Vector2, b: Vector2): boolean {
+    if (!a || !b) return false;
     return a.x === b.x && a.y === b.y;
   }
   static equalApproximate(a: Vector2, b: Vector2): boolean {
+    if (!a || !b) return false;
     return equalWithEpsilon(a.x, b.x) && equalWithEpsilon(a.y, b.y);
   }
 
@@ -32,12 +53,10 @@ export default class Vector2 {
   }
 
   static distanceSquared(a: Vector2, b: Vector2): number {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx * dx + dy * dy;
+    return Vector2.subtract(a, b).lengthSquared;
   }
   static distance(a: Vector2, b: Vector2): number {
-    return Math.sqrt(Vector2.distanceSquared(a, b));
+    return Vector2.subtract(a, b).length;
   }
 
   static midpoint(a: Vector2, b: Vector2): Vector2 {
@@ -55,12 +74,40 @@ export default class Vector2 {
     return new Vector2(point.x * scalar, point.y * scalar);
   }
 
+  static lerp(from: Vector2, to: Vector2, t: number) {
+    const tMinus = 1 - t;
+    return new Vector2(from.x * tMinus + to.x * t, from.y * tMinus + to.y * t);
+  }
+
   x: number;
   y: number;
 
   constructor(x: number = 0, y: number = 0) {
     this.x = x;
     this.y = y;
+  }
+
+  get lengthSquared(): number {
+    return this.x * this.x + this.y * this.y;
+  }
+  get length(): number {
+    return Math.sqrt(this.lengthSquared);
+  }
+
+  get normalized(): Vector2 {
+    const length = this.length;
+    if (equalWithEpsilon(length, 0)) return null;
+    return new Vector2(this.x / length, this.y / length);
+  }
+
+  get perpendicular(): Vector2 {
+    return new Vector2(this.y, -this.x);
+  }
+
+  negate(): Vector2 {
+    this.x = -this.x;
+    this.y = -this.y;
+    return this;
   }
 
   add?(other: Vector2): Vector2 {
