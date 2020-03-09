@@ -62,6 +62,13 @@ export default class Vector2 {
   static midpoint(a: Vector2, b: Vector2): Vector2 {
     return new Vector2((a.x + b.x) / 2, (a.y + b.y) / 2);
   }
+  static centroid(...points: Vector2[]): Vector2 {
+    if (!points) return null;
+    const centroid = points.reduce((sum, point) => sum.add(point), new Vector2());
+    centroid.x /= points.length;
+    centroid.y /= points.length;
+    return centroid;
+  }
 
   static add(a: Vector2, b: Vector2): Vector2 {
     return new Vector2(a.x + b.x, a.y + b.y);
