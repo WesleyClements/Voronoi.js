@@ -977,16 +977,19 @@ export class Cell {
     );
   }
   get centroid(): Vector2 {
-    const centroid: Vector2 = this.triangles.reduce((sum: Vector2, tri: Triangle): Vector2 => {
-      const centroid = tri.centroid;
-      const area = tri.area;
-      sum.x += centroid.x * area;
-      sum.y += centroid.y * area;
-      return sum;
-    }, new Vector2(0, 0));
-    const totalArea = this.area;
-    centroid.x /= totalArea;
-    centroid.y /= totalArea;
+    const centroid = new Vector2();
+    const totalArea = this.vertices.reduce((sum, vertex, i, vertices): number => {
+      const nextVertex = vertices[(i + 1) % vertices.length];
+      const area = Vector2.cross(vertex, nextVertex);
+      centroid.x += area * (vertex.x + nextVertex.x);
+      centroid.y += area * (vertex.y + nextVertex.y);
+      return sum + area;
+    }, 0);
+    // if totalArea < 0 then polygon is wrapped clockwise and centroid needs to be negated
+    if (totalArea < 0) centroid.scale(-1);
+    const divisor = Math.abs(totalArea) * 3;
+    centroid.x /= divisor;
+    centroid.y /= divisor;
     return centroid;
   }
 
@@ -1020,13 +1023,28 @@ export class Cell {
   }
 
   contains(point: Vector2): boolean {
-    for (const edge of this.edges) {
-      if (!edge.start || !edge.end) continue;
-      const alongEdge = Vector2.subtract(edge.end, edge.start);
-      const toPoint = Vector2.subtract(point, edge.start);
-      if (Vector2.cross(alongEdge, toPoint) >= 0) return false;
-    }
-    return true;
+    const crossSignSum = new Vector2();
+    const isOnEdge = !this.edges.every((edge, i): boolean => {
+      if (!edge.start || !edge.end) return true;
+      const vertex = edge.start;
+      const nextVertex = edge.end;
+
+      const xWithinRange = !(point.x < Math.min(vertex.x, nextVertex.x) || point.x > Math.max(vertex.x, nextVertex.x));
+      const yWithinRange = !(point.y < Math.min(vertex.y, nextVertex.y) || point.y > Math.max(vertex.y, nextVertex.y));
+
+      if (!xWithinRange && !yWithinRange) return true;
+
+      const alongEdge = Vector2.subtract(nextVertex, vertex);
+      const toPoint = Vector2.subtract(point, vertex);
+      const cross = Vector2.cross(alongEdge, toPoint);
+
+      if (xWithinRange && yWithinRange && cross === 0) return false;
+      if (xWithinRange) crossSignSum.x += Math.sign(cross);
+      if (yWithinRange) crossSignSum.y += Math.sign(cross);
+      return true;
+    });
+    if (isOnEdge) return false;
+    return crossSignSum.x !== 0 && crossSignSum.y !== 0;
   }
 }
 
