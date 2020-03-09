@@ -145,7 +145,7 @@ import { RBTree, RBTreeNode } from './util/RBTree.js';
 
 import Vector2 from './util/Vector2.js';
 import LineSegment from './util/LineSegment.js';
-import Triangle from './util/Triangle.js';
+import Polygon from './util/Polygon.js';
 
 import AABB from './util/AABB.js';
 
@@ -959,40 +959,6 @@ export class Cell {
     this.edges = [];
   }
 
-  get triangles(): Triangle[] {
-    return this.edges.map(edge => new Triangle(this.site, edge.start, edge.end));
-  }
-
-  get perimeter(): number {
-    return this.edges.reduce((area, edge) => {
-      return area + edge.length;
-    }, 0);
-  }
-  get area(): number {
-    return Math.abs(
-      this.vertices.reduce((sum, vertex, i): number => {
-        const nextVertex = this.vertices[(i + 1) % this.vertices.length];
-        return sum + Vector2.cross(vertex, nextVertex) / 2;
-      }, 0),
-    );
-  }
-  get centroid(): Vector2 {
-    const centroid = new Vector2();
-    const totalArea = this.vertices.reduce((sum, vertex, i, vertices): number => {
-      const nextVertex = vertices[(i + 1) % vertices.length];
-      const area = Vector2.cross(vertex, nextVertex);
-      centroid.x += area * (vertex.x + nextVertex.x);
-      centroid.y += area * (vertex.y + nextVertex.y);
-      return sum + area;
-    }, 0);
-    // if totalArea < 0 then polygon is wrapped clockwise and centroid needs to be negated
-    if (totalArea < 0) centroid.scale(-1);
-    const divisor = Math.abs(totalArea) * 3;
-    centroid.x /= divisor;
-    centroid.y /= divisor;
-    return centroid;
-  }
-
   get vertices(): Vertex[] {
     const vertices: Set<Vertex> = new Set();
     this.edges.forEach(edge => {
@@ -1012,39 +978,8 @@ export class Cell {
       .filter(neighbor => neighbor);
   }
 
-  get boundingAABB(): AABB {
-    return this.vertices.reduce((aabb: AABB, vertex: Vertex): AABB => {
-      if (vertex.x < aabb.min.x) aabb.min.x = vertex.x;
-      else if (vertex.x > aabb.max.x) aabb.max.x = vertex.x;
-      if (vertex.y < aabb.min.y) aabb.min.y = vertex.y;
-      else if (vertex.y > aabb.max.y) aabb.max.y = vertex.y;
-      return aabb;
-    }, new AABB(Vector2.infinity, Vector2.infinity.negate()));
-  }
-
-  contains(point: Vector2): boolean {
-    const crossSignSum = new Vector2();
-    const isOnEdge = !this.edges.every((edge, i): boolean => {
-      if (!edge.start || !edge.end) return true;
-      const vertex = edge.start;
-      const nextVertex = edge.end;
-
-      const xWithinRange = !(point.x < Math.min(vertex.x, nextVertex.x) || point.x > Math.max(vertex.x, nextVertex.x));
-      const yWithinRange = !(point.y < Math.min(vertex.y, nextVertex.y) || point.y > Math.max(vertex.y, nextVertex.y));
-
-      if (!xWithinRange && !yWithinRange) return true;
-
-      const alongEdge = Vector2.subtract(nextVertex, vertex);
-      const toPoint = Vector2.subtract(point, vertex);
-      const cross = Vector2.cross(alongEdge, toPoint);
-
-      if (xWithinRange && yWithinRange && cross === 0) return false;
-      if (xWithinRange) crossSignSum.x += Math.sign(cross);
-      if (yWithinRange) crossSignSum.y += Math.sign(cross);
-      return true;
-    });
-    if (isOnEdge) return false;
-    return crossSignSum.x !== 0 && crossSignSum.y !== 0;
+  get polygon(): Polygon {
+    return new Polygon(...this.vertices);
   }
 }
 
@@ -1126,7 +1061,7 @@ export default class Diagram {
 
   getRelaxedSites(t: number = 1): Site[] {
     return this.cells.map(cell => {
-      const newPoint = Vector2.lerp(cell.site, cell.centroid, t);
+      const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, t);
       return { ...cell.site, x: newPoint.x, y: newPoint.y } as Site;
     });
   }
