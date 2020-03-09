@@ -969,9 +969,12 @@ export class Cell {
     }, 0);
   }
   get area(): number {
-    return this.triangles.reduce((area, tri) => {
-      return area + tri.area;
-    }, 0);
+    return Math.abs(
+      this.vertices.reduce((sum, vertex, i): number => {
+        const nextVertex = this.vertices[(i + 1) % this.vertices.length];
+        return sum + Vector2.cross(vertex, nextVertex) / 2;
+      }, 0),
+    );
   }
   get centroid(): Vector2 {
     const centroid: Vector2 = this.triangles.reduce((sum: Vector2, tri: Triangle): Vector2 => {
@@ -1007,14 +1010,11 @@ export class Cell {
   }
 
   get boundingAABB(): AABB {
-    return this.edges.reduce((aabb: AABB, edge: CellEdge): AABB => {
-      if (edge.start) {
-        const start = edge.start;
-        if (start.x < aabb.min.x) aabb.min.x = start.x;
-        else if (start.x > aabb.max.x) aabb.max.x = start.x;
-        if (start.y < aabb.min.y) aabb.min.y = start.y;
-        else if (start.y > aabb.max.y) aabb.max.y = start.y;
-      }
+    return this.vertices.reduce((aabb: AABB, vertex: Vertex): AABB => {
+      if (vertex.x < aabb.min.x) aabb.min.x = vertex.x;
+      else if (vertex.x > aabb.max.x) aabb.max.x = vertex.x;
+      if (vertex.y < aabb.min.y) aabb.min.y = vertex.y;
+      else if (vertex.y > aabb.max.y) aabb.max.y = vertex.y;
       return aabb;
     }, new AABB(Vector2.infinity, Vector2.infinity.negate()));
   }
