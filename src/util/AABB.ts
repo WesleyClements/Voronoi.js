@@ -39,9 +39,7 @@ export default class AABB {
       if (obj.y > this.max.y) return false;
       return true;
     } else if (obj instanceof AABB) {
-      if (!this.contains(obj.min)) return false;
-      if (!this.contains(obj.max)) return false;
-      return true;
+      return this.contains(obj.min) && this.contains(obj.max);
     }
     throw new Error('not implemented yet');
   }
