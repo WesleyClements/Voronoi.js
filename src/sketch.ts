@@ -1,10 +1,13 @@
 import { Color } from 'p5';
 
 import Vector2 from './util/Vector2.js';
-import AABB from './util/AABB.js';
-import Diagram, { Cell } from './Voronoi.js';
-import { AABBQuadTree } from './util/QuadTree.js';
 import LineSegment from './util/LineSegment.js';
+import Polygon from './util/Polygon.js';
+import AABB from './util/AABB.js';
+
+import { AABBQuadTree } from './util/QuadTree.js';
+
+import Diagram, { Cell } from './Voronoi.js';
 
 declare global {
   interface Window {
@@ -23,6 +26,7 @@ interface ColoredPoint extends Vector2 {
 
 interface CellAABB extends AABB {
   cell?: Cell;
+  polygon?: Polygon;
 }
 
 const pointCount: number = 20;
@@ -53,16 +57,6 @@ function updateDimensions() {
 }
 function getMouseLocation() {
   return new Vector2(mouseX, height - mouseY);
-}
-
-function drawCell(cell: Cell) {
-  beginShape();
-  cell.edges.forEach((edge: any) => {
-    const v = edge.end;
-    if (!v) return;
-    vertex(v.x, v.y);
-  });
-  endShape();
 }
 
 window.setup = () => {
@@ -107,26 +101,29 @@ window.draw = () => {
     10,
   );
   diagram.cells.forEach(cell => {
-    let cellAABB: CellAABB = cell.boundingAABB;
+    const polygon = cell.polygon;
+    let cellAABB: CellAABB = polygon.boundingAABB;
     cellAABB.cell = cell;
+    cellAABB.polygon = polygon;
     quadTree.insert(cellAABB);
   });
 
   let highCell: Cell;
   const mouse = getMouseLocation();
   quadTree.retrieve(mouse).forEach(cellAABB => {
-    if (cellAABB.cell.contains(mouse)) highCell = cellAABB.cell;
+    if (cellAABB.polygon.contains(mouse)) highCell = cellAABB.cell;
   });
 
   background(150);
 
+  strokeWeight(1);
   diagram.cells.forEach(cell => {
     if (cell.edges.length < 3) return;
     if (cell === highCell) fill(color(255, 0, 0));
     else fill((cell.site as ColoredPoint).color);
 
     stroke(color(0, 0, 0));
-    drawCell(cell);
+    cell.polygon.draw();
 
     stroke(color(0, 0, 255));
     cell.vertices.forEach(vertex => LineSegment.draw(cell.site, vertex));
@@ -143,7 +140,7 @@ window.draw = () => {
     diagram.cells.forEach(cell => {
       if (cell === highCell) stroke(color(255, 0, 0));
       else stroke(color(255, 255, 0));
-      cell.boundingAABB.draw();
+      cell.polygon.boundingAABB.draw();
     });
   }
   if (drawQuadTree) {
