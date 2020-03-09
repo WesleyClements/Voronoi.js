@@ -9,11 +9,11 @@ import LineSegment from './util/LineSegment.js';
 declare global {
   interface Window {
     lerpT: number;
-    defectiveCell: Cell;
     setup: () => void;
-    draw: () => void;
     windowResized: () => void;
+    keyPressed: () => void;
     mousePressed: () => void;
+    draw: () => void;
   }
 }
 
@@ -39,6 +39,9 @@ let bounds: AABB;
 
 let generationPoint: Vector2;
 
+let drawQuadTree: boolean = false;
+let drawCellAABB: boolean = false;
+
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
@@ -49,6 +52,16 @@ function updateDimensions() {
 }
 function getMouseLocation() {
   return new Vector2(mouseX, height - mouseY);
+}
+
+function drawCell(cell: Cell) {
+  beginShape();
+  cell.edges.forEach((edge: any) => {
+    const v = edge.end;
+    if (!v) return;
+    vertex(v.x, v.y);
+  });
+  endShape(CLOSE);
 }
 
 window.setup = () => {
@@ -66,6 +79,15 @@ window.setup = () => {
 window.windowResized = () => {
   updateDimensions();
   resizeCanvas(width, height);
+};
+
+window.keyPressed = () => {
+  if (key.toLowerCase() === 'q') {
+    drawQuadTree = !drawQuadTree;
+  }
+  if (key.toLowerCase() === 'b') {
+    drawCellAABB = !drawCellAABB;
+  }
 };
 
 window.draw = () => {
@@ -86,9 +108,9 @@ window.draw = () => {
     quadTree.insert(cellAABB);
   });
 
-  const mouse = getMouseLocation();
   let highCell: Cell;
-  quadTree.retrieve(new AABB(mouse, mouse)).forEach(cellAABB => {
+  const mouse = getMouseLocation();
+  quadTree.retrieve(mouse).forEach(cellAABB => {
     if (cellAABB.cell.contains(mouse)) highCell = cellAABB.cell;
   });
 
@@ -96,24 +118,38 @@ window.draw = () => {
 
   strokeWeight(1);
   stroke(color(0, 0, 0));
-  diagram.edges.forEach(edge => edge.draw());
-  diagram.sites.forEach((site: ColoredPoint & { cell?: Cell }) => {
-    const { cell } = site;
-    if (!cell || cell.edges.length < 3) return;
+  //diagram.edges.forEach(edge => edge.draw());
+  diagram.cells.forEach(cell => {
+    if (cell.edges.length < 3) return;
     if (cell === highCell) fill(color(255, 0, 0));
-    else fill(site.color);
+    else fill((cell.site as ColoredPoint).color);
 
     stroke(color(0, 0, 0));
     drawCell(cell);
 
     stroke(color(0, 0, 255));
-    cell.vertices.forEach(vertex => LineSegment.draw(site, vertex));
+    cell.vertices.forEach(vertex => LineSegment.draw(cell.site, vertex));
   });
+
+  if (drawCellAABB) {
+    strokeWeight(2);
+    diagram.cells.forEach(cell => {
+      if (cell === highCell) stroke(color(255, 0, 0));
+      else stroke(color(255, 255, 0));
+      cell.boundingAABB.draw();
+    });
+  }
+  if (drawQuadTree) {
+    strokeWeight(2);
+    stroke(color(0, 0, 0));
+    quadTree.draw();
+  }
 
   points = diagram.getRelaxedSites(window.lerpT);
 
   if (mouseIsPressed) {
-    generationPoint = new Vector2(min(max(0, mouseX), width), min(max(0, mouseY), height));
+    const mouse = getMouseLocation();
+    generationPoint = new Vector2(min(max(0, mouse.x), width), min(max(0, mouse.y), height));
   }
   if (points.length < maxPointCount && frameCount % 10 === 0) {
     const point: ColoredPoint = Vector2.add(generationPoint, new Vector2(random() - 0.5, random() - 0.5));
@@ -121,13 +157,3 @@ window.draw = () => {
     points.push(point as Vector2);
   }
 };
-
-function drawCell(cell: Cell) {
-  beginShape();
-  cell.edges.forEach((edge: any) => {
-    const v = edge.end;
-    if (!v) return;
-    vertex(v.x, v.y);
-  });
-  endShape(CLOSE);
-}
