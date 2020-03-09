@@ -60,18 +60,20 @@ interface QuadTreeNode<T> {
   nodes: QuadTreeNode<T>[];
   children: T[];
 
-  getNode: (item: T) => QuadTreeNode<T>;
+  getNode: (test: Vector2 | AABB) => QuadTreeNode<T>;
 
   insert: (...item: T[]) => boolean;
-  retrieve: (item: T) => T[];
+  retrieve: (test: Vector2 | AABB) => T[];
 
   clear: () => void;
+
+  draw: () => void;
 }
 
 /************** PointQuadTreeNode ********************/
 
 class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
-  quadTree: QuadTree<T>;
+  quadTree: PointQuadTree<T>;
   bounds: AABB;
   depth: number;
 
@@ -86,9 +88,15 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
     this.children = [];
   }
 
-  getNode(item: T): PointQuadTreeNode<T> {
+  getNode(test: Vector2 | AABB): PointQuadTreeNode<T> {
     if (!this.nodes) return undefined;
-    return this.nodes[getIndex(item, this.bounds.center)];
+    if (test instanceof Vector2) {
+      return this.nodes[getIndex(test, this.bounds.center)];
+    }
+    if (test instanceof AABB) {
+      return this.nodes[getIndex(test.center, this.bounds.center)];
+    }
+    throw new Error('not implemented for type of test');
   }
 
   insert(item: T): boolean {
@@ -109,8 +117,8 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
     }
   }
 
-  retrieve(item: T): T[] {
-    if (this.nodes) return this.getNode(item).retrieve(item);
+  retrieve(test: Vector2 | AABB): T[] {
+    if (this.nodes) return this.getNode(test).retrieve(test);
     else return Array.from(this.children);
   }
 
@@ -121,6 +129,11 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
       this.nodes.forEach(node => node.clear());
       delete this.nodes;
     }
+  }
+
+  draw(): void {
+    this.bounds.draw();
+    if (this.nodes) this.nodes.forEach(node => node.draw());
   }
 }
 
@@ -142,9 +155,15 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
     this.children = [];
   }
 
-  getNode(item: T): AABBQuadTreeNode<T> {
+  getNode(test: Vector2 | AABB): AABBQuadTreeNode<T> {
     if (!this.nodes) return undefined;
-    return this.nodes[getIndex(item.center, this.bounds.center)];
+    if (test instanceof Vector2) {
+      return this.nodes[getIndex(test, this.bounds.center)];
+    }
+    if (test instanceof AABB) {
+      return this.nodes[getIndex(test.center, this.bounds.center)];
+    }
+    throw new Error('not implemented for type of test');
   }
 
   insert(item: T): boolean {
@@ -166,9 +185,9 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
     return true;
   }
 
-  retrieve(item: T): T[] {
+  retrieve(test: Vector2 | AABB): T[] {
     if (this.nodes) {
-      return Array.from([...this.children, ...this.getNode(item).retrieve(item)]);
+      return Array.from([...this.children, ...this.getNode(test).retrieve(test)]);
     } else return Array.from(this.children);
   }
 
@@ -179,6 +198,11 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
       this.nodes.forEach(node => node.clear());
       delete this.nodes;
     }
+  }
+
+  draw(): void {
+    this.bounds.draw();
+    if (this.nodes) this.nodes.forEach(node => node.draw());
   }
 }
 //#endregion
@@ -206,15 +230,17 @@ interface QuadTree<T> {
    * Retrieves all items / points in the same node as the specified item / point. If the specified item
    * overlaps the bounds of a node, then all children in both nodes will be returned.
    * @method retrieve
-   * @param {Object} item An object representing a 2D coordinate point (with x, y properties), or a shape
+   * @param {Object} test An object representing a 2D coordinate point (with x, y properties), or a shape
    * with dimensions (x, y, width, height) properties.
    **/
-  retrieve: (item: T) => T[];
+  retrieve: (test: Vector2 | AABB) => T[];
   /**
    * Clears all nodes and children from the QuadTree
    * @method clear
    **/
   clear: () => void;
+
+  draw: () => void;
 }
 
 /****************** PointQuadTree ****************/
@@ -246,12 +272,16 @@ export class PointQuadTree<T extends Vector2> implements QuadTree<T> {
     });
   }
 
-  retrieve(item: T): T[] {
-    return Array.from(this.root.retrieve(item));
+  retrieve(test: Vector2 | AABB): T[] {
+    return Array.from(this.root.retrieve(test));
   }
 
   clear(): void {
     this.root.clear();
+  }
+
+  draw(): void {
+    this.root.draw();
   }
 }
 
@@ -288,13 +318,17 @@ export class AABBQuadTree<T extends AABB> implements QuadTree<T> {
     });
   }
 
-  retrieve(item: T): T[] {
-    return Array.from([...this.children, ...this.root.retrieve(item)]);
+  retrieve(test: Vector2 | AABB): T[] {
+    return Array.from([...this.children, ...this.root.retrieve(test)]);
   }
 
   clear(): void {
     this.root.clear();
     this.children = [];
+  }
+
+  draw(): void {
+    this.root.draw();
   }
 }
 
