@@ -12,7 +12,7 @@ function getRawArea(...points: Vector2[]): number {
   );
 }
 
-export class Polygon {
+export default class Polygon {
   static draw(...points: Vector2[]): void {
     if (!points) return;
     beginShape();
