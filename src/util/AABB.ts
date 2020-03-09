@@ -5,6 +5,12 @@ export default class AABB {
     return new AABB(Vector2.clone(aabb.min), Vector2.clone(aabb.max));
   }
 
+  static draw(min: Vector2, max: Vector2): void {
+    if (!min || !max) return;
+    noFill();
+    rect(min.x, min.y, max.x - min.x, max.y - min.y);
+  }
+
   min: Vector2;
   max: Vector2;
 
@@ -50,5 +56,9 @@ export default class AABB {
       return true;
     }
     throw new Error('not implemented yet');
+  }
+
+  draw(): void {
+    AABB.draw(this.min, this.max);
   }
 }
