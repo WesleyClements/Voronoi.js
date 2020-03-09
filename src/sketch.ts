@@ -39,6 +39,7 @@ let bounds: AABB;
 
 let generationPoint: Vector2;
 
+let drawEdges: boolean = false;
 let drawQuadTree: boolean = false;
 let drawCellAABB: boolean = false;
 
@@ -61,7 +62,7 @@ function drawCell(cell: Cell) {
     if (!v) return;
     vertex(v.x, v.y);
   });
-  endShape(CLOSE);
+  endShape();
 }
 
 window.setup = () => {
@@ -82,6 +83,9 @@ window.windowResized = () => {
 };
 
 window.keyPressed = () => {
+  if (key.toLowerCase() === 'e') {
+    drawEdges = !drawEdges;
+  }
   if (key.toLowerCase() === 'q') {
     drawQuadTree = !drawQuadTree;
   }
@@ -116,9 +120,6 @@ window.draw = () => {
 
   background(150);
 
-  strokeWeight(1);
-  stroke(color(0, 0, 0));
-  //diagram.edges.forEach(edge => edge.draw());
   diagram.cells.forEach(cell => {
     if (cell.edges.length < 3) return;
     if (cell === highCell) fill(color(255, 0, 0));
@@ -130,6 +131,12 @@ window.draw = () => {
     stroke(color(0, 0, 255));
     cell.vertices.forEach(vertex => LineSegment.draw(cell.site, vertex));
   });
+
+  if (drawEdges) {
+    strokeWeight(2);
+    stroke(color(0, 0, 0));
+    diagram.edges.forEach(edge => edge.draw());
+  }
 
   if (drawCellAABB) {
     strokeWeight(2);
