@@ -8,10 +8,6 @@ export default class Triangle {
   c: Vector2;
 
   constructor(a: Vector2, b: Vector2, c: Vector2) {
-    if (a == null) throw new Error('a is null');
-    if (b == null) throw new Error('b is null');
-    if (c == null) throw new Error('c is null');
-
     this.a = a;
     this.b = b;
     this.c = c;
@@ -35,15 +31,7 @@ export default class Triangle {
   }
 
   get area(): number {
-    const ab: number = this.AB.length;
-    const ac: number = this.AC.length;
-    const bc: number = this.BC.length;
-    const semi: number = this.semiperimeter;
-
-    const sidesAreNotZero = () => ab !== 0 && ac !== 0 && bc !== 0;
-    const sidesAreNotInLine = () => semi !== ab && semi !== ac && semi !== bc;
-    if (sidesAreNotZero() && sidesAreNotInLine()) return sqrt(semi * (semi - ab) * (semi - ac) * (semi - bc));
-    else return 0;
+    return Math.abs(Vector2.cross(this.a, this.b) + Vector2.cross(this.b, this.c) + Vector2.cross(this.c, this.a)) / 2;
   }
 
   get centroid(): Vector2 {
