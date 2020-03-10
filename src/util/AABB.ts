@@ -45,6 +45,9 @@ export default class AABB {
     return new LineSegment(new Vector2(this.max.x, this.min.y), Vector2.clone(this.max));
   }
 
+  contains(obj: Vector2): boolean;
+  contains(obj: LineSegment): boolean;
+  contains(obj: AABB): boolean;
   contains(obj: Vector2 | LineSegment | AABB): boolean {
     if (obj == null) throw new Error('obj is null');
     if (obj instanceof Vector2) {
@@ -56,6 +59,8 @@ export default class AABB {
     } else throw new Error('not implemented yet');
   }
 
+  intersects(obj: LineSegment): boolean;
+  intersects(obj: AABB): boolean;
   intersects(obj: LineSegment | AABB): boolean {
     if (obj == null) throw new Error('obj is null');
     if (obj instanceof LineSegment) {
@@ -81,6 +86,8 @@ export default class AABB {
     } else throw new Error('not implemented yet');
   }
 
+  clamp(obj: Vector2): Vector2;
+  clamp(obj: LineSegment): LineSegment;
   clamp(obj: Vector2 | LineSegment): Vector2 | LineSegment {
     if (obj == null) throw new Error('obj is null');
     if (obj instanceof Vector2) {

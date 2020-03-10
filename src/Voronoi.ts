@@ -826,7 +826,7 @@ function connectEdgeToBounds(edge: Edge, aabb: AABB): boolean {
 // Thanks!
 // A bit modified to minimize code paths
 function clipEdgeToBounds(edge: Edge, aabb: AABB): boolean {
-  const clamped = aabb.clamp(edge) as LineSegment;
+  const clamped = aabb.clamp(edge);
 
   if (!clamped) return false;
   const aChanged = clamped.a !== edge.a;

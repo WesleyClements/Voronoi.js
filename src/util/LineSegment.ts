@@ -47,6 +47,8 @@ export default class LineSegment {
     return LineSegment.getBoundingAABB(this.a, this.b);
   }
 
+  intersects(obj: LineSegment): boolean;
+  intersects(obj: AABB): boolean;
   intersects(obj: LineSegment | AABB): boolean {
     if (obj == null) throw new Error('obj is null');
     if (obj instanceof LineSegment) {
