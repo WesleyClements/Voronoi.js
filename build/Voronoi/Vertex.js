@@ -1,0 +1,29 @@
+import Vector2 from '../util/Vector2.js';
+export default class Vertex extends Vector2 {
+    constructor(x, y) {
+        super(x, y);
+        this.edges = new Set();
+    }
+    get neighbors() {
+        const neighbors = new Set();
+        this.edges.forEach(edge => {
+            if (edge.a)
+                neighbors.add(edge.a);
+            if (edge.b)
+                neighbors.add(edge.b);
+        });
+        neighbors.delete(this);
+        return [...neighbors];
+    }
+    get cells() {
+        const cells = new Set();
+        this.edges.forEach(edge => {
+            if (edge.left)
+                cells.add(edge.left.cell);
+            if (edge.right)
+                cells.add(edge.right.cell);
+        });
+        return [...cells];
+    }
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiVmVydGV4LmpzIiwic291cmNlUm9vdCI6Ii4vc3JjLyIsInNvdXJjZXMiOlsiVm9yb25vaS9WZXJ0ZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsT0FBTyxPQUFPLE1BQU0sb0JBQW9CLENBQUM7QUFLekMsTUFBTSxDQUFDLE9BQU8sT0FBTyxNQUFPLFNBQVEsT0FBTztJQUV6QyxZQUFZLENBQVMsRUFBRSxDQUFTO1FBQzlCLEtBQUssQ0FBQyxDQUFDLEVBQUUsQ0FBQyxDQUFDLENBQUM7UUFDWixJQUFJLENBQUMsS0FBSyxHQUFHLElBQUksR0FBRyxFQUFFLENBQUM7SUFDekIsQ0FBQztJQUVELElBQUksU0FBUztRQUNYLE1BQU0sU0FBUyxHQUFnQixJQUFJLEdBQUcsRUFBRSxDQUFDO1FBQ3pDLElBQUksQ0FBQyxLQUFLLENBQUMsT0FBTyxDQUFDLElBQUksQ0FBQyxFQUFFO1lBQ3hCLElBQUksSUFBSSxDQUFDLENBQUM7Z0JBQUUsU0FBUyxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsQ0FBQyxDQUFDLENBQUM7WUFDbEMsSUFBSSxJQUFJLENBQUMsQ0FBQztnQkFBRSxTQUFTLENBQUMsR0FBRyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsQ0FBQztRQUNwQyxDQUFDLENBQUMsQ0FBQztRQUNILFNBQVMsQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUFDLENBQUM7UUFDdkIsT0FBTyxDQUFDLEdBQUcsU0FBUyxDQUFDLENBQUM7SUFDeEIsQ0FBQztJQUVELElBQUksS0FBSztRQUNQLE1BQU0sS0FBSyxHQUFjLElBQUksR0FBRyxFQUFFLENBQUM7UUFDbkMsSUFBSSxDQUFDLEtBQUssQ0FBQyxPQUFPLENBQUMsSUFBSSxDQUFDLEVBQUU7WUFDeEIsSUFBSSxJQUFJLENBQUMsSUFBSTtnQkFBRSxLQUFLLENBQUMsR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLENBQUM7WUFDekMsSUFBSSxJQUFJLENBQUMsS0FBSztnQkFBRSxLQUFLLENBQUMsR0FBRyxDQUFDLElBQUksQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLENBQUM7UUFDN0MsQ0FBQyxDQUFDLENBQUM7UUFDSCxPQUFPLENBQUMsR0FBRyxLQUFLLENBQUMsQ0FBQztJQUNwQixDQUFDO0NBQ0YifQ==

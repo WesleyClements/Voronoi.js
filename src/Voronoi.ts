@@ -141,15 +141,20 @@ TODO: Identify opportunities for performance improvement.\
 
 import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon } from './util/FloatUtil.js';
 
-import { RBTree, RBTreeNode } from './util/RBTree.js';
-
 import Vector2 from './util/Vector2.js';
-import LineSegment from './util/LineSegment.js';
-import Polygon from './util/Polygon.js';
-
 import AABB from './util/AABB.js';
 
-class VoronoiGenerator {
+import RBTree, { RBTreeNode } from './util/RBTree.js';
+
+import Site from './Voronoi/Site.js';
+import Vertex from './Voronoi/Vertex.js';
+import Edge from './Voronoi/Edge.js';
+import Cell from './Voronoi/Cell.js';
+import CellEdge from './Voronoi/CellEdge.js';
+
+export { Site, Vertex, Edge, Cell, CellEdge };
+
+class Voronoi {
   diagram: Diagram;
 
   beachline: RBTree<BeachSection>;
@@ -170,7 +175,7 @@ class VoronoiGenerator {
     this.diagram = diagram;
 
     // Initialize site event queue
-    const siteEvents = Array.from(sites).sort(Vector2.compareY);
+    const siteEvents: Site[] = Array.from(sites).sort(Vector2.compareY) as Site[];
 
     // process queue
     let site: Site = siteEvents.pop();
@@ -400,7 +405,7 @@ class VoronoiGenerator {
     this.attachCircleEvent(lArc);
     this.attachCircleEvent(rArc);
   }
-  addBeachSection(site: Vector2): void {
+  addBeachSection(site: Site): void {
     const { x, y: directrix } = site;
 
     // find the left and right beach sections which will surround the newly
@@ -664,54 +669,6 @@ class CircleEvent extends Vector2 {
   }
 }
 
-interface Site extends Vector2 {
-  cell?: Cell;
-}
-
-export class Vertex extends Vector2 {
-  edges: Set<Edge>;
-  constructor(x: number, y: number) {
-    super(x, y);
-    this.edges = new Set();
-  }
-
-  get neighbors(): Vertex[] {
-    const neighbors: Set<Vertex> = new Set();
-    this.edges.forEach(edge => {
-      if (edge.a) neighbors.add(edge.a);
-      if (edge.b) neighbors.add(edge.b);
-    });
-    neighbors.delete(this);
-    return [...neighbors];
-  }
-
-  get cells(): Cell[] {
-    const cells: Set<Cell> = new Set();
-    this.edges.forEach(edge => {
-      if (edge.left) cells.add(edge.left.cell);
-      if (edge.right) cells.add(edge.right.cell);
-    });
-    return [...cells];
-  }
-}
-
-//#region Vertex Functions
-//#endregion
-
-export class Edge extends LineSegment {
-  left: Site;
-  right: Site;
-
-  a: Vertex;
-  b: Vertex;
-
-  constructor(left: Site, right: Site, start?: Vertex, end?: Vertex) {
-    super(start, end);
-    this.left = left;
-    this.right = right;
-  }
-}
-
 //#region Edge Functions
 function setEdgeStart(edge: Edge, left: Site, right: Site, vertex: Vertex): void {
   if (edge.a || edge.b) {
@@ -864,85 +821,12 @@ function clipEdge(edge: Edge, aabb: AABB): boolean {
 }
 //#endregion
 
-class CellEdge {
-  site: Site;
-  sharedEdge: Edge;
-  angle: number;
-
-  constructor(site: Site, sharedEdge: Edge, other?: Site) {
-    this.site = site;
-    this.sharedEdge = sharedEdge;
-
-    // 'angle' is a value to be used for properly sorting the
-    // halfsegments counterclockwise. By convention, we will
-    // use the angle of the line defined by the 'site to the left'
-    // to the 'site to the right'.
-    // However, border edges have no 'site to the right': thus we
-    // use the angle of line perpendicular to the halfsegment (the
-    // edge should have both end points defined in such case.)
-    if (other) this.angle = Math.atan2(other.y - site.y, other.x - site.x);
-    else {
-      const alongEdge = Vector2.subtract(this.end, this.start);
-      this.angle = Math.atan2(alongEdge.x, -alongEdge.y);
-    }
-  }
-
-  get length(): number {
-    return this.sharedEdge.length;
-  }
-
-  get start(): Vertex {
-    return this.sharedEdge.left === this.site ? this.sharedEdge.a : this.sharedEdge.b;
-  }
-  get end(): Vertex {
-    return this.sharedEdge.left === this.site ? this.sharedEdge.b : this.sharedEdge.a;
-  }
-}
-
-//#region CellEdge Functions
+//#region Cell Functions
 function compareCellEdges(a: CellEdge, b: CellEdge): number {
   if (!a) return -1;
   if (!b) return 1;
   return b.angle - a.angle;
 }
-//#endregion
-
-export class Cell {
-  site: Site;
-  edges: CellEdge[];
-
-  isClosed: boolean;
-
-  constructor(site: Site) {
-    this.site = site;
-    this.edges = [];
-  }
-
-  get vertices(): Vertex[] {
-    const vertices: Set<Vertex> = new Set();
-    this.edges.forEach(edge => {
-      if (edge.start) vertices.add(edge.start);
-      if (edge.end) vertices.add(edge.end);
-    });
-    return [...vertices];
-  }
-
-  get neighbors(): Cell[] {
-    return this.edges
-      .map(edge => {
-        if (edge.sharedEdge.left === this.site && edge.sharedEdge.right) return edge.sharedEdge.right.cell;
-        else if (edge.sharedEdge.left) return edge.sharedEdge.left.cell;
-        return null;
-      })
-      .filter(neighbor => neighbor);
-  }
-
-  get polygon(): Polygon {
-    return new Polygon(...this.vertices);
-  }
-}
-
-//#region Cell Functions
 // close open cells
 function closeCell(diagram: Diagram, cell: Cell, aabb: AABB): boolean {
   const { min, max } = aabb;
@@ -1002,7 +886,7 @@ export default class Diagram {
   constructor(sites?: Vector2[]) {
     this.edges = [];
     this.cells = [];
-    new VoronoiGenerator().compute(sites, this);
+    new Voronoi().compute(sites, this);
   }
 
   get sites(): Site[] {
