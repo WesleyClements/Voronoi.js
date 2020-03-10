@@ -53,31 +53,36 @@ function getMouseLocation() {
 }
 
 function getRandomColor() {
-  const min = 1;
-  let r = random();
-  let g = random();
-  let b = random();
-  let missing = 1 - r - g - b;
-  while (missing > 0) {
-    const amount = Math.min(missing, 0.05);
-    const i = floor(random(3));
-    switch (i) {
-      case 0:
-        r += amount;
-        break;
-      case 1:
-        g += amount;
-        break;
-      case 2:
-        b += amount;
-        break;
-    }
-    missing -= amount;
+  const hue = random(6);
+  const saturation = random(0.25, 1);
+  const brightness = random(0.75, 1);
+
+  const c = brightness * saturation;
+  const x = c * (1 - Math.abs((hue % 2) - 1));
+  const m = brightness - c;
+
+  let r: number, g: number, b: number;
+  switch (true) {
+    case hue < 1:
+      [r, g, b] = [c + m, x + m, m];
+      break;
+    case hue < 2:
+      [r, g, b] = [x + m, c + m, m];
+      break;
+    case hue < 3:
+      [r, g, b] = [m, c + m, x + m];
+      break;
+    case hue < 4:
+      [r, g, b] = [m, x + m, c + m];
+      break;
+    case hue < 5:
+      [r, g, b] = [x + m, m, c + m];
+      break;
+    default:
+      [r, g, b] = [c + m, m, x + m];
+      break;
   }
-  r = Math.min(Math.sqrt(r) * 256, 255);
-  g = Math.min(Math.sqrt(g) * 256, 255);
-  b = Math.min(Math.sqrt(b) * 256, 255);
-  return color(r, g, b);
+  return color(r * 255, g * 255, b * 255);
 }
 
 function updateDimensions() {
