@@ -625,8 +625,9 @@ function detachCircleEvent(data: VoronoiData, arc: BeachSection & RBTreeNode<Bea
 //#endregion
 
 export default class Voronoi {
-  static compute(sites: Vector2[]): Diagram {
-    if (!sites || sites.length < 1) throw Error('no sites provided');
+  static compute(...sites: Vector2[]): Diagram {
+    if (!sites) throw Error('sites is undefined');
+    if (sites.length < 1) throw Error('no sites provided');
     // to measure execution time
     const startTime = new Date();
 
