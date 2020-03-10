@@ -53,13 +53,13 @@ function getMouseLocation() {
 }
 
 function getRandomColor() {
-  const min = 255;
-  let r = Math.min(random(256), 255);
-  let g = Math.min(random(256), 255);
-  let b = Math.min(random(256), 255);
-  let missing = min - r - g - b;
+  const min = 1;
+  let r = random();
+  let g = random();
+  let b = random();
+  let missing = 1 - r - g - b;
   while (missing > 0) {
-    const amount = Math.min(missing, 10);
+    const amount = Math.min(missing, 0.05);
     const i = floor(random(3));
     switch (i) {
       case 0:
@@ -74,6 +74,9 @@ function getRandomColor() {
     }
     missing -= amount;
   }
+  r = Math.min(Math.sqrt(r) * 256, 255);
+  g = Math.min(Math.sqrt(g) * 256, 255);
+  b = Math.min(Math.sqrt(b) * 256, 255);
   return color(r, g, b);
 }
 
