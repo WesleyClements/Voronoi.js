@@ -44,54 +44,50 @@ let bounds: AABB;
 let generationPoint: Vector2;
 
 let drawEdges: boolean = false;
-let drawQuadTree: boolean = false;
 let drawCellAABB: boolean = false;
+let drawQuadTree: boolean = false;
+let drawCenterLine: boolean = false;
+
+function getMouseLocation() {
+  return new Vector2(mouseX, height - mouseY);
+}
+
+function getRandomColor() {
+  const min = 255;
+  let r = Math.min(random(256), 255);
+  let g = Math.min(random(256), 255);
+  let b = Math.min(random(256), 255);
+  let missing = min - r - g - b;
+  while (missing > 0) {
+    const amount = Math.min(missing, 10);
+    const i = floor(random(3));
+    switch (i) {
+      case 0:
+        r += amount;
+        break;
+      case 1:
+        g += amount;
+        break;
+      case 2:
+        b += amount;
+        break;
+    }
+    missing -= amount;
+  }
+  return color(r, g, b);
+}
 
 function updateDimensions() {
   width = windowWidth - 40;
   height = windowHeight - 40;
   bounds = new AABB(new Vector2(0, 0), new Vector2(width, height));
   if (generationPoint && !bounds.contains(generationPoint)) {
-    generationPoint = new Vector2(width / 2, height / 2);
+    bounds.clamp(generationPoint);
+    generationPoint.x -= 0.5;
   }
 }
-function getMouseLocation() {
-  return new Vector2(mouseX, height - mouseY);
-}
 
-window.setup = () => {
-  window.lerpT = 0.02;
-  updateDimensions();
-  generationPoint = new Vector2(width / 2, height / 2);
-  createCanvas(width, height);
-  for (let i = 0; i < pointCount; ++i) {
-    const point: ColoredPoint = new Vector2(random() * width, random() * height);
-    point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
-    points.push(point);
-  }
-};
-
-window.windowResized = () => {
-  updateDimensions();
-  resizeCanvas(width, height);
-};
-
-window.keyPressed = () => {
-  if (key.toLowerCase() === 'e') {
-    drawEdges = !drawEdges;
-  }
-  if (key.toLowerCase() === 'q') {
-    drawQuadTree = !drawQuadTree;
-  }
-  if (key.toLowerCase() === 'b') {
-    drawCellAABB = !drawCellAABB;
-  }
-};
-
-window.draw = () => {
-  scale(1, -1);
-  translate(0, -height);
-
+function updateDiagram() {
   diagram = new Diagram(points);
   diagram.finish(bounds);
 
@@ -107,48 +103,9 @@ window.draw = () => {
     cellAABB.polygon = polygon;
     quadTree.insert(cellAABB);
   });
+}
 
-  let highCell: Cell;
-  const mouse = getMouseLocation();
-  quadTree.retrieve(mouse).forEach(cellAABB => {
-    if (cellAABB.polygon.contains(mouse)) highCell = cellAABB.cell;
-  });
-
-  background(150);
-
-  strokeWeight(1);
-  diagram.cells.forEach(cell => {
-    if (cell.edges.length < 3) return;
-    if (cell === highCell) fill(color(255, 0, 0));
-    else fill((cell.site as ColoredPoint).color);
-
-    stroke(color(0, 0, 0));
-    cell.polygon.draw();
-
-    stroke(color(0, 0, 255));
-    cell.vertices.forEach(vertex => LineSegment.draw(cell.site, vertex));
-  });
-
-  if (drawEdges) {
-    strokeWeight(2);
-    stroke(color(0, 0, 0));
-    diagram.edges.forEach(edge => edge.draw());
-  }
-
-  if (drawCellAABB) {
-    strokeWeight(2);
-    diagram.cells.forEach(cell => {
-      if (cell === highCell) stroke(color(255, 0, 0));
-      else stroke(color(255, 255, 0));
-      cell.polygon.boundingAABB.draw();
-    });
-  }
-  if (drawQuadTree) {
-    strokeWeight(2);
-    stroke(color(0, 0, 0));
-    quadTree.draw();
-  }
-
+function updatePoints() {
   points = diagram.getRelaxedSites(window.lerpT);
 
   if (mouseIsPressed) {
@@ -156,8 +113,119 @@ window.draw = () => {
     generationPoint = new Vector2(min(max(0, mouse.x), width), min(max(0, mouse.y), height));
   }
   if (points.length < maxPointCount && frameCount % 10 === 0) {
-    const point: ColoredPoint = Vector2.add(generationPoint, new Vector2(random() - 0.5, random() - 0.5));
-    point.color = color(sqrt(random()) * 255, sqrt(random()) * 255, sqrt(random()) * 255);
+    const point: ColoredPoint = Vector2.add(generationPoint, new Vector2(random(-0.5, 0.5), random(-0.5, 0.5)));
+    point.color = getRandomColor();
     points.push(point as Vector2);
   }
+}
+
+window.setup = () => {
+  window.lerpT = 0.02;
+  updateDimensions();
+  generationPoint = new Vector2(width / 2, height / 2);
+  createCanvas(width, height);
+  for (let i = 0; i < pointCount; ++i) {
+    const point: ColoredPoint = new Vector2(random(width), random(height));
+    point.color = getRandomColor();
+    points.push(point);
+  }
+  updateDiagram();
+};
+
+window.windowResized = () => {
+  updateDimensions();
+  resizeCanvas(width, height);
+};
+
+window.keyPressed = () => {
+  if (key.toLowerCase() === 'c') {
+    drawCenterLine = !drawCenterLine;
+  }
+  if (key.toLowerCase() === 'e') {
+    drawEdges = !drawEdges;
+  }
+  if (key.toLowerCase() === 'q') {
+    drawQuadTree = !drawQuadTree;
+  }
+  if (key.toLowerCase() === 'b') {
+    drawCellAABB = !drawCellAABB;
+  }
+};
+
+window.draw = () => {
+  scale(1, -1);
+  translate(0, -height);
+
+  let highCell: Cell;
+  const mouse = getMouseLocation();
+  quadTree.retrieve(mouse).forEach(cellAABB => {
+    if (cellAABB.polygon.contains(mouse)) highCell = cellAABB.cell;
+  });
+
+  const centerLine = new LineSegment(new Vector2(width / 2, height / 2), getMouseLocation());
+
+  background(150);
+
+  strokeWeight(2);
+  diagram.cells.forEach(cell => {
+    if (cell.edges.length < 3) return;
+    if (drawCenterLine) strokeWeight(1);
+    if (cell === highCell) fill(color(255, 0, 0));
+    else fill((cell.site as ColoredPoint).color);
+
+    stroke(color(0));
+    cell.polygon.draw();
+
+    stroke(color(0, 0, 255));
+    cell.vertices.forEach(vertex => {
+      const line = new LineSegment(cell.site, vertex);
+      if (drawCenterLine) {
+        if (line.intersects(centerLine)) {
+          strokeWeight(3);
+          stroke(color(0, 255, 255));
+        } else {
+          strokeWeight(2);
+          stroke(color(0, 0, 255));
+        }
+      }
+      line.draw();
+    });
+  });
+
+  if (drawEdges) {
+    strokeWeight(4);
+    stroke(color(0));
+    diagram.edges.forEach(edge => edge.draw());
+  }
+
+  if (drawCellAABB) {
+    strokeWeight(2);
+    diagram.cells.forEach(cell => {
+      const aabb = cell.polygon.boundingAABB;
+      if (cell === highCell) {
+        if (drawCenterLine) strokeWeight(2);
+        stroke(color(255, 0, 0));
+      } else if (drawCenterLine && aabb.intersects(centerLine)) {
+        strokeWeight(3);
+        stroke(color(255, 0, 255));
+      } else {
+        if (drawCenterLine) strokeWeight(2);
+        stroke(color(255, 255, 0));
+      }
+      aabb.draw();
+    });
+  }
+  if (drawQuadTree) {
+    strokeWeight(2);
+    stroke(color(0));
+    quadTree.draw();
+  }
+  if (drawCenterLine) {
+    strokeWeight(2);
+    stroke(color(0));
+    centerLine.draw();
+  }
+
+  updatePoints();
+  updateDiagram();
 };
