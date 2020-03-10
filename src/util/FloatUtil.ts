@@ -15,3 +15,13 @@ export function lessThanOrEqualWithEpsilon(a: number, b: number): boolean {
 export function lessThanWithEpsilon(a: number, b: number): boolean {
   return b - a > EPSILON;
 }
+
+export function constrain(n: number, min: number, max: number): number {
+  return Math.min(Math.max(n, min), max);
+}
+
+export function isBetween(n: number, min: number, max: number): boolean {
+  if (n < min) return false;
+  if (n > max) return false;
+  return true;
+}
