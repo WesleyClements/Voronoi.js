@@ -139,10 +139,9 @@ Voronoi.Halfedge object:
 TODO: Identify opportunities for performance improvement.\
 */
 
-import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon } from './util/FloatUtil.js';
+import { EPSILON, equalWithEpsilon } from './util/FloatUtil.js';
 
 import Vector2 from './util/Vector2.js';
-import AABB from './util/AABB.js';
 
 import RBTree, { RBTreeNode } from './util/RBTree.js';
 
