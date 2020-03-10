@@ -826,56 +826,15 @@ function connectEdgeToBounds(edge: Edge, aabb: AABB): boolean {
 // Thanks!
 // A bit modified to minimize code paths
 function clipEdgeToBounds(edge: Edge, aabb: AABB): boolean {
-  const { min, max } = aabb;
+  const clamped = aabb.clamp(edge) as LineSegment;
 
-  const delta = Vector2.subtract(edge.b, edge.a);
-  let t0 = 0;
-  let t1 = 1;
+  if (!clamped) return false;
+  const aChanged = clamped.a !== edge.a;
+  const bChanged = clamped.b !== edge.b;
+  if (aChanged) edge.a = new Vertex(clamped.a.x, clamped.a.y);
+  if (bChanged) edge.b = new Vertex(clamped.b.x, clamped.b.y);
 
-  // positive delta and relativeWallPosition are towards the direction we are checking
-  // negavtive delta and relativeWallPosition are away from the direction we are checking
-  function edgeIsInBounds(delta: number, relativeWallPosition: number) {
-    // if no delta and wall is the opposite of where we are looking we don't intersect
-    if (delta === 0 && relativeWallPosition < 0) return false;
-
-    const r = relativeWallPosition / delta; // proportional length// if edge points towards where we are looking
-    if (delta > 0) {
-      if (r < t0) {
-        // line collides with wall before start of edge so no need to clip
-        return false;
-      } else if (r < t1) t1 = r;
-    }
-    // if edge points away from where we are looking
-    else if (delta < 0) {
-      // collides with wall after end of edge
-      if (r > t1) return false;
-      else if (r > t0) t0 = r;
-    }
-
-    return true;
-  }
-  // left
-  if (!edgeIsInBounds(-delta.x, -(min.x - edge.a.x))) return false;
-  // right
-  if (!edgeIsInBounds(delta.x, max.x - edge.a.x)) return false;
-  // bottom
-  if (!edgeIsInBounds(-delta.y, -(min.y - edge.a.y))) return false;
-  // top
-  if (!edgeIsInBounds(delta.y, max.y - edge.a.y)) return false;
-
-  // if we reach this point, Voronoi edge is within bbox
-
-  // if t0 > 0, va needs to change
-  if (t0 > 0) {
-    edge.a = new Vertex(edge.a.x + t0 * delta.x, edge.a.y + t0 * delta.y);
-  }
-
-  // if t1 < 1, vb needs to change
-  if (t1 < 1) {
-    edge.b = new Vertex(edge.a.x + t1 * delta.x, edge.a.y + t1 * delta.y);
-  }
-
-  if (t0 > 0 || t1 < 1) {
+  if (aChanged || bChanged) {
     if (edge.left) edge.left.cell.isClosed = false;
     if (edge.right) edge.right.cell.isClosed = false;
   }

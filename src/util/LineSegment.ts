@@ -18,9 +18,9 @@ export default class LineSegment {
   a: Vector2;
   b: Vector2;
 
-  constructor(start: Vector2, end: Vector2) {
-    this.a = start;
-    this.b = end;
+  constructor(a: Vector2, b: Vector2) {
+    this.a = a;
+    this.b = b;
   }
 
   get AB(): Vector2 {
