@@ -231,13 +231,6 @@ export default class Diagram {
     return this.cells.filter(cell => cell.isOnEdge);
   }
 
-  getRelaxedSites(t: number = 1): Site[] {
-    return this.cells.map(cell => {
-      const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, t);
-      return { ...cell.site, x: newPoint.x, y: newPoint.y } as Site;
-    });
-  }
-
   // Connect/cut edges at bounding box and close the cells.
   // The cells are bound by the supplied bounding box.
   // Each cell refers to its associated site, and a list

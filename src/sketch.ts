@@ -114,7 +114,10 @@ function updateDiagram() {
 }
 
 function updatePoints() {
-  points = diagram.getRelaxedSites(window.lerpT);
+  points = diagram.cells.map(cell => {
+    const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, window.lerpT);
+    return { ...cell.site, x: newPoint.x, y: newPoint.y } as Vector2;
+  });
 
   if (mouseIsPressed) {
     const mouse = getMouseLocation();
