@@ -17,180 +17,174 @@ let drawCellAABB = false;
 let drawQuadTree = false;
 let drawCenterLine = false;
 function getMouseLocation() {
-    return new Vector2(mouseX, height - mouseY);
+  return new Vector2(mouseX, height - mouseY);
 }
 function getRandomColor() {
-    const hue = random(6);
-    const saturation = random(0.25, 1);
-    const brightness = random(0.75, 1);
-    const c = brightness * saturation;
-    const x = c * (1 - Math.abs((hue % 2) - 1));
-    const m = brightness - c;
-    let r, g, b;
-    switch (true) {
-        case hue < 1:
-            [r, g, b] = [c + m, x + m, m];
-            break;
-        case hue < 2:
-            [r, g, b] = [x + m, c + m, m];
-            break;
-        case hue < 3:
-            [r, g, b] = [m, c + m, x + m];
-            break;
-        case hue < 4:
-            [r, g, b] = [m, x + m, c + m];
-            break;
-        case hue < 5:
-            [r, g, b] = [x + m, m, c + m];
-            break;
-        default:
-            [r, g, b] = [c + m, m, x + m];
-            break;
-    }
-    return color(r * 255, g * 255, b * 255);
+  const hue = random(6);
+  const saturation = random(0.25, 1);
+  const brightness = random(0.75, 1);
+  const c = brightness * saturation;
+  const x = c * (1 - Math.abs((hue % 2) - 1));
+  const m = brightness - c;
+  let r, g, b;
+  switch (true) {
+    case hue < 1:
+      [r, g, b] = [c + m, x + m, m];
+      break;
+    case hue < 2:
+      [r, g, b] = [x + m, c + m, m];
+      break;
+    case hue < 3:
+      [r, g, b] = [m, c + m, x + m];
+      break;
+    case hue < 4:
+      [r, g, b] = [m, x + m, c + m];
+      break;
+    case hue < 5:
+      [r, g, b] = [x + m, m, c + m];
+      break;
+    default:
+      [r, g, b] = [c + m, m, x + m];
+      break;
+  }
+  return color(r * 255, g * 255, b * 255);
 }
 function updateDimensions() {
-    width = windowWidth - 40;
-    height = windowHeight - 40;
-    bounds = new AABB(new Vector2(0, 0), new Vector2(width, height));
-    if (generationPoint && !bounds.contains(generationPoint)) {
-        bounds.clamp(generationPoint);
-        generationPoint.x -= 0.5;
-    }
+  width = windowWidth - 40;
+  height = windowHeight - 40;
+  bounds = new AABB(new Vector2(0, 0), new Vector2(width, height));
+  if (generationPoint && !bounds.contains(generationPoint)) {
+    bounds.clamp(generationPoint);
+    generationPoint.x -= 0.5;
+  }
 }
 function updateDiagram() {
-    diagram = Voronoi.compute(points);
-    diagram.finish(bounds);
-    quadTree = new AABBQuadTree(new AABB(Vector2.subtract(bounds.min, new Vector2(10, 10)), Vector2.add(bounds.max, new Vector2(10, 10))), 20, 10);
-    diagram.cells.forEach(cell => {
-        const polygon = cell.polygon;
-        let cellAABB = polygon.boundingAABB;
-        cellAABB.cell = cell;
-        cellAABB.polygon = polygon;
-        quadTree.insert(cellAABB);
-    });
+  diagram = Voronoi.compute(...points);
+  diagram.finish(bounds);
+  quadTree = new AABBQuadTree(
+    new AABB(Vector2.subtract(bounds.min, new Vector2(10, 10)), Vector2.add(bounds.max, new Vector2(10, 10))),
+    20,
+    10,
+  );
+  diagram.cells.forEach(cell => {
+    const polygon = cell.polygon;
+    let cellAABB = polygon.boundingAABB;
+    cellAABB.cell = cell;
+    cellAABB.polygon = polygon;
+    quadTree.insert(cellAABB);
+  });
 }
 function updatePoints() {
-    points = diagram.cells.map(cell => {
-        const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, window.lerpT);
-        return Object.assign(Object.assign({}, cell.site), { x: newPoint.x, y: newPoint.y });
-    });
-    if (mouseIsPressed) {
-        const mouse = getMouseLocation();
-        generationPoint = new Vector2(min(max(0, mouse.x), width), min(max(0, mouse.y), height));
-    }
-    if (points.length < maxPointCount && frameCount % 10 === 0) {
-        const point = Vector2.add(generationPoint, new Vector2(random(-0.5, 0.5), random(-0.5, 0.5)));
-        point.color = getRandomColor();
-        points.push(point);
-    }
+  points = diagram.cells.map(cell => {
+    const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, window.lerpT);
+    return Object.assign(Object.assign({}, cell.site), { x: newPoint.x, y: newPoint.y });
+  });
+  if (mouseIsPressed) {
+    const mouse = getMouseLocation();
+    generationPoint = new Vector2(min(max(0, mouse.x), width), min(max(0, mouse.y), height));
+  }
+  if (points.length < maxPointCount && frameCount % 10 === 0) {
+    const point = Vector2.add(generationPoint, new Vector2(random(-0.5, 0.5), random(-0.5, 0.5)));
+    point.color = getRandomColor();
+    points.push(point);
+  }
 }
 window.setup = () => {
-    window.lerpT = 0.02;
-    updateDimensions();
-    generationPoint = new Vector2(width / 2, height / 2);
-    createCanvas(width, height);
-    for (let i = 0; i < pointCount; ++i) {
-        const point = new Vector2(random(width), random(height));
-        point.color = getRandomColor();
-        points.push(point);
-    }
-    updateDiagram();
+  window.lerpT = 0.02;
+  updateDimensions();
+  generationPoint = new Vector2(width / 2, height / 2);
+  createCanvas(width, height);
+  for (let i = 0; i < pointCount; ++i) {
+    const point = new Vector2(random(width), random(height));
+    point.color = getRandomColor();
+    points.push(point);
+  }
+  updateDiagram();
 };
 window.windowResized = () => {
-    updateDimensions();
-    resizeCanvas(width, height);
+  updateDimensions();
+  resizeCanvas(width, height);
 };
 window.keyPressed = () => {
-    if (key.toLowerCase() === 'c') {
-        drawCenterLine = !drawCenterLine;
-    }
-    if (key.toLowerCase() === 'e') {
-        drawEdges = !drawEdges;
-    }
-    if (key.toLowerCase() === 'q') {
-        drawQuadTree = !drawQuadTree;
-    }
-    if (key.toLowerCase() === 'b') {
-        drawCellAABB = !drawCellAABB;
-    }
+  if (key.toLowerCase() === 'c') {
+    drawCenterLine = !drawCenterLine;
+  }
+  if (key.toLowerCase() === 'e') {
+    drawEdges = !drawEdges;
+  }
+  if (key.toLowerCase() === 'q') {
+    drawQuadTree = !drawQuadTree;
+  }
+  if (key.toLowerCase() === 'b') {
+    drawCellAABB = !drawCellAABB;
+  }
 };
 window.draw = () => {
-    scale(1, -1);
-    translate(0, -height);
-    let highCell;
-    const mouse = getMouseLocation();
-    quadTree.retrieve(mouse).forEach(cellAABB => {
-        if (cellAABB.polygon.contains(mouse))
-            highCell = cellAABB.cell;
+  scale(1, -1);
+  translate(0, -height);
+  let highCell;
+  const mouse = getMouseLocation();
+  quadTree.retrieve(mouse).forEach(cellAABB => {
+    if (cellAABB.polygon.contains(mouse)) highCell = cellAABB.cell;
+  });
+  const centerLine = new LineSegment(new Vector2(width / 2, height / 2), getMouseLocation());
+  background(150);
+  strokeWeight(2);
+  diagram.cells.forEach(cell => {
+    if (cell.edges.length < 3) return;
+    if (drawCenterLine) strokeWeight(1);
+    if (cell === highCell) fill(color(255, 0, 0));
+    else fill(cell.site.color);
+    stroke(color(0));
+    cell.polygon.draw();
+    stroke(color(0, 0, 255));
+    cell.vertices.forEach(vertex => {
+      const line = new LineSegment(cell.site, vertex);
+      if (drawCenterLine) {
+        if (line.intersects(centerLine)) {
+          strokeWeight(3);
+          stroke(color(0, 255, 255));
+        } else {
+          strokeWeight(2);
+          stroke(color(0, 0, 255));
+        }
+      }
+      line.draw();
     });
-    const centerLine = new LineSegment(new Vector2(width / 2, height / 2), getMouseLocation());
-    background(150);
+  });
+  if (drawEdges) {
+    strokeWeight(4);
+    stroke(color(0));
+    diagram.edges.forEach(edge => edge.draw());
+  }
+  if (drawCellAABB) {
     strokeWeight(2);
     diagram.cells.forEach(cell => {
-        if (cell.edges.length < 3)
-            return;
-        if (drawCenterLine)
-            strokeWeight(1);
-        if (cell === highCell)
-            fill(color(255, 0, 0));
-        else
-            fill(cell.site.color);
-        stroke(color(0));
-        cell.polygon.draw();
-        stroke(color(0, 0, 255));
-        cell.vertices.forEach(vertex => {
-            const line = new LineSegment(cell.site, vertex);
-            if (drawCenterLine) {
-                if (line.intersects(centerLine)) {
-                    strokeWeight(3);
-                    stroke(color(0, 255, 255));
-                }
-                else {
-                    strokeWeight(2);
-                    stroke(color(0, 0, 255));
-                }
-            }
-            line.draw();
-        });
+      const aabb = cell.polygon.boundingAABB;
+      if (cell === highCell) {
+        if (drawCenterLine) strokeWeight(2);
+        stroke(color(255, 0, 0));
+      } else if (drawCenterLine && aabb.intersects(centerLine)) {
+        strokeWeight(3);
+        stroke(color(255, 0, 255));
+      } else {
+        if (drawCenterLine) strokeWeight(2);
+        stroke(color(255, 255, 0));
+      }
+      aabb.draw();
     });
-    if (drawEdges) {
-        strokeWeight(4);
-        stroke(color(0));
-        diagram.edges.forEach(edge => edge.draw());
-    }
-    if (drawCellAABB) {
-        strokeWeight(2);
-        diagram.cells.forEach(cell => {
-            const aabb = cell.polygon.boundingAABB;
-            if (cell === highCell) {
-                if (drawCenterLine)
-                    strokeWeight(2);
-                stroke(color(255, 0, 0));
-            }
-            else if (drawCenterLine && aabb.intersects(centerLine)) {
-                strokeWeight(3);
-                stroke(color(255, 0, 255));
-            }
-            else {
-                if (drawCenterLine)
-                    strokeWeight(2);
-                stroke(color(255, 255, 0));
-            }
-            aabb.draw();
-        });
-    }
-    if (drawQuadTree) {
-        strokeWeight(2);
-        stroke(color(0));
-        quadTree.draw();
-    }
-    if (drawCenterLine) {
-        strokeWeight(2);
-        stroke(color(0));
-        centerLine.draw();
-    }
-    updatePoints();
-    updateDiagram();
+  }
+  if (drawQuadTree) {
+    strokeWeight(2);
+    stroke(color(0));
+    quadTree.draw();
+  }
+  if (drawCenterLine) {
+    strokeWeight(2);
+    stroke(color(0));
+    centerLine.draw();
+  }
+  updatePoints();
+  updateDiagram();
 };
 //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2tldGNoLmpzIiwic291cmNlUm9vdCI6Ii4vc3JjLyIsInNvdXJjZXMiOlsic2tldGNoLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUVBLE9BQU8sT0FBTyxNQUFNLG1CQUFtQixDQUFDO0FBQ3hDLE9BQU8sV0FBVyxNQUFNLHVCQUF1QixDQUFDO0FBRWhELE9BQU8sSUFBSSxNQUFNLGdCQUFnQixDQUFDO0FBRWxDLE9BQU8sRUFBRSxZQUFZLEVBQUUsTUFBTSxvQkFBb0IsQ0FBQztBQUVsRCxPQUFPLE9BQTBCLE1BQU0sY0FBYyxDQUFDO0FBc0J0RCxNQUFNLFVBQVUsR0FBVyxFQUFFLENBQUM7QUFDOUIsTUFBTSxhQUFhLEdBQVcsR0FBRyxDQUFDO0FBQ2xDLElBQUksTUFBTSxHQUFtQixFQUFFLENBQUM7QUFFaEMsSUFBSSxPQUFnQixDQUFDO0FBQ3JCLElBQUksUUFBZ0MsQ0FBQztBQUVyQyxJQUFJLEtBQWEsQ0FBQztBQUNsQixJQUFJLE1BQWMsQ0FBQztBQUVuQixJQUFJLE1BQVksQ0FBQztBQUVqQixJQUFJLGVBQXdCLENBQUM7QUFFN0IsSUFBSSxTQUFTLEdBQVksS0FBSyxDQUFDO0FBQy9CLElBQUksWUFBWSxHQUFZLEtBQUssQ0FBQztBQUNsQyxJQUFJLFlBQVksR0FBWSxLQUFLLENBQUM7QUFDbEMsSUFBSSxjQUFjLEdBQVksS0FBSyxDQUFDO0FBRXBDLFNBQVMsZ0JBQWdCO0lBQ3ZCLE9BQU8sSUFBSSxPQUFPLENBQUMsTUFBTSxFQUFFLE1BQU0sR0FBRyxNQUFNLENBQUMsQ0FBQztBQUM5QyxDQUFDO0FBRUQsU0FBUyxjQUFjO0lBQ3JCLE1BQU0sR0FBRyxHQUFHLE1BQU0sQ0FBQyxDQUFDLENBQUMsQ0FBQztJQUN0QixNQUFNLFVBQVUsR0FBRyxNQUFNLENBQUMsSUFBSSxFQUFFLENBQUMsQ0FBQyxDQUFDO0lBQ25DLE1BQU0sVUFBVSxHQUFHLE1BQU0sQ0FBQyxJQUFJLEVBQUUsQ0FBQyxDQUFDLENBQUM7SUFFbkMsTUFBTSxDQUFDLEdBQUcsVUFBVSxHQUFHLFVBQVUsQ0FBQztJQUNsQyxNQUFNLENBQUMsR0FBRyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsSUFBSSxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsR0FBRyxDQUFDLENBQUMsR0FBRyxDQUFDLENBQUMsQ0FBQyxDQUFDO0lBQzVDLE1BQU0sQ0FBQyxHQUFHLFVBQVUsR0FBRyxDQUFDLENBQUM7SUFFekIsSUFBSSxDQUFTLEVBQUUsQ0FBUyxFQUFFLENBQVMsQ0FBQztJQUNwQyxRQUFRLElBQUksRUFBRTtRQUNaLEtBQUssR0FBRyxHQUFHLENBQUM7WUFDVixDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsR0FBRyxDQUFDLEVBQUUsQ0FBQyxDQUFDLENBQUM7WUFDOUIsTUFBTTtRQUNSLEtBQUssR0FBRyxHQUFHLENBQUM7WUFDVixDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsR0FBRyxDQUFDLEVBQUUsQ0FBQyxDQUFDLENBQUM7WUFDOUIsTUFBTTtRQUNSLEtBQUssR0FBRyxHQUFHLENBQUM7WUFDVixDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLEdBQUcsQ0FBQyxDQUFDLENBQUM7WUFDOUIsTUFBTTtRQUNSLEtBQUssR0FBRyxHQUFHLENBQUM7WUFDVixDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLEdBQUcsQ0FBQyxDQUFDLENBQUM7WUFDOUIsTUFBTTtRQUNSLEtBQUssR0FBRyxHQUFHLENBQUM7WUFDVixDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxF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
