@@ -7,7 +7,7 @@ import AABB from './util/AABB.js';
 
 import { AABBQuadTree } from './util/QuadTree.js';
 
-import Diagram, { Cell } from './Voronoi.js';
+import Voronoi, { Diagram, Cell } from './Voronoi.js';
 
 declare global {
   interface Window {
@@ -96,7 +96,7 @@ function updateDimensions() {
 }
 
 function updateDiagram() {
-  diagram = new Diagram(points);
+  diagram = Voronoi.compute(points);
   diagram.finish(bounds);
 
   quadTree = new AABBQuadTree<CellAABB>(
