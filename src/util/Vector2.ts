@@ -53,10 +53,12 @@ export default class Vector2 {
   }
 
   static distanceSquared(a: Vector2, b: Vector2): number {
-    return Vector2.subtract(a, b).lengthSquared;
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return dx * dx + dy * dy;
   }
   static distance(a: Vector2, b: Vector2): number {
-    return Vector2.subtract(a, b).length;
+    return Math.sqrt(Vector2.distanceSquared(a, b));
   }
 
   static midpoint(a: Vector2, b: Vector2): Vector2 {
