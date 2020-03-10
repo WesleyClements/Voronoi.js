@@ -71,7 +71,7 @@ function rotateRight<T>(tree: RBTree<T>, node: T & RBTreeNode<T>) {
   left.rbRight = node;
 }
 
-export class RBTree<T> {
+export default class RBTree<T> {
   static getFirst<T>(node: T): T & RBTreeNode<T>;
   static getFirst<T>(node: T & RBTreeNode<T>): T & RBTreeNode<T> {
     while (node.rbLeft) node = node.rbLeft;
