@@ -1,6 +1,7 @@
+import { constrain, isBetween } from './FloatUtil.js';
+
 import Vector2 from './Vector2.js';
 import LineSegment from './LineSegment.js';
-import { isBetween } from './FloatUtil.js';
 
 export default class AABB {
   static clone(aabb: AABB): AABB {

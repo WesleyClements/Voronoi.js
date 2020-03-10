@@ -227,6 +227,10 @@ export default class Diagram {
     return [...vertices];
   }
 
+  get edgeCells(): Cell[] {
+    return this.cells.filter(cell => cell.isOnEdge);
+  }
+
   getRelaxedSites(t: number = 1): Site[] {
     return this.cells.map(cell => {
       const newPoint = Vector2.lerp(cell.site, cell.polygon.centroid, t);

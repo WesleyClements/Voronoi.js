@@ -15,6 +15,10 @@ export default class Cell {
     this.edges = [];
   }
 
+  get isOnEdge() {
+    return !this.edges.every(edge => edge.sharedEdge.left && edge.sharedEdge.right);
+  }
+
   get vertices(): Vertex[] {
     const vertices: Set<Vertex> = new Set();
     this.edges.forEach(edge => {
