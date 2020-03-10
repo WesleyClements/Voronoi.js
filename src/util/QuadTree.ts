@@ -60,7 +60,7 @@ interface QuadTreeNode<T> {
   nodes: QuadTreeNode<T>[];
   children: T[];
 
-  getNode: (test: Vector2 | AABB) => QuadTreeNode<T>;
+  getNode: (test: Vector2) => QuadTreeNode<T>;
 
   insert: (...item: T[]) => boolean;
   retrieve: (test: Vector2 | AABB) => T[];
@@ -88,15 +88,9 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
     this.children = [];
   }
 
-  getNode(test: Vector2 | AABB): PointQuadTreeNode<T> {
+  getNode(test: Vector2): PointQuadTreeNode<T> {
     if (!this.nodes) return undefined;
-    if (test instanceof Vector2) {
-      return this.nodes[getIndex(test, this.bounds.center)];
-    }
-    if (test instanceof AABB) {
-      return this.nodes[getIndex(test.center, this.bounds.center)];
-    }
-    throw new Error('not implemented for type of test');
+    else return this.nodes[getIndex(test, this.bounds.center)];
   }
 
   insert(item: T): boolean {
@@ -118,8 +112,19 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
   }
 
   retrieve(test: Vector2 | AABB): T[] {
-    if (this.nodes) return this.getNode(test).retrieve(test);
-    else return Array.from(this.children);
+    if (test instanceof Vector2) {
+      if (this.nodes) return this.getNode(test).retrieve(test);
+      else return Array.from(this.children);
+    } else if (test instanceof AABB) {
+      if (this.nodes) {
+        return this.nodes.reduce((children, node): T[] => {
+          if (!node.bounds.intersects(test)) return children;
+          return [...children, ...node.retrieve(test)];
+        }, []);
+      } else {
+        return this.children.filter(child => test.contains(child));
+      }
+    } else throw new Error('test is not a Vector2 or AABB');
   }
 
   clear(): void {
@@ -155,21 +160,15 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
     this.children = [];
   }
 
-  getNode(test: Vector2 | AABB): AABBQuadTreeNode<T> {
+  getNode(test: Vector2): AABBQuadTreeNode<T> {
     if (!this.nodes) return undefined;
-    if (test instanceof Vector2) {
-      return this.nodes[getIndex(test, this.bounds.center)];
-    }
-    if (test instanceof AABB) {
-      return this.nodes[getIndex(test.center, this.bounds.center)];
-    }
-    throw new Error('not implemented for type of test');
+    else return this.nodes[getIndex(test, this.bounds.center)];
   }
 
   insert(item: T): boolean {
     if (!item) return false;
     if (this.nodes) {
-      if (!this.getNode(item).insert(item)) this.children.push(item);
+      if (!this.getNode(item.center).insert(item)) this.children.push(item);
     } else {
       if (!this.bounds.contains(item)) return false;
 
@@ -186,9 +185,15 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
   }
 
   retrieve(test: Vector2 | AABB): T[] {
-    if (this.nodes) {
-      return Array.from([...this.children, ...this.getNode(test).retrieve(test)]);
-    } else return Array.from(this.children);
+    if (test instanceof Vector2) {
+      const children = this.children.filter(child => child.contains(test));
+      if (this.nodes) return [...children, ...this.getNode(test).retrieve(test)];
+      else return children;
+    } else if (test instanceof AABB) {
+      const children = this.children.filter(child => child.intersects(test));
+      if (this.nodes) return [...children, ...this.getNode(test.center).retrieve(test)];
+      else return children;
+    } else throw new Error('test is not a Vector2 or AABB');
   }
 
   clear(): void {
