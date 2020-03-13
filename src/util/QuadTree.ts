@@ -168,7 +168,7 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
   insert(item: T): boolean {
     if (!item) return false;
     if (this.nodes) {
-      if (!this.getNode(item.center).insert(item)) this.children.push(item);
+      if (this.nodes.every(node => !node.insert(item))) this.children.push(item);
     } else {
       if (!this.bounds.contains(item)) return false;
 
