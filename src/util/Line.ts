@@ -1,4 +1,4 @@
-import Vector2 from './Vector2.js';
+import Vector2 from './Vector2';
 export default class Line {
   static getIntersection(a: Line, b: Line): Vector2 {
     let det = a.dy * b.dx - b.dy * a.dx;

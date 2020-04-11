@@ -1,8 +1,8 @@
-import Vector2 from '../util/Vector2.js';
+import Vector2 from '../util/Vector2';
 
-import Site from './Site.js';
-import Vertex from './Vertex.js';
-import Edge from './Edge.js';
+import Site from './Site';
+import Vertex from './Vertex';
+import Edge from './Edge';
 
 export default class CellEdge {
   site: Site;

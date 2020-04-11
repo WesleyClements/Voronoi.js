@@ -1,8 +1,8 @@
-import Polygon from '../util/Polygon.js';
+import Polygon from '../util/Polygon';
 
-import Site from './Site.js';
-import Vertex from './Vertex.js';
-import CellEdge from './CellEdge.js';
+import Site from './Site';
+import Vertex from './Vertex';
+import CellEdge from './CellEdge';
 
 export default class Cell {
   site: Site;
@@ -16,12 +16,12 @@ export default class Cell {
   }
 
   get isOnEdge() {
-    return !this.edges.every(edge => edge.sharedEdge.left && edge.sharedEdge.right);
+    return !this.edges.every((edge) => edge.sharedEdge.left && edge.sharedEdge.right);
   }
 
   get vertices(): Vertex[] {
     const vertices: Set<Vertex> = new Set();
-    this.edges.forEach(edge => {
+    this.edges.forEach((edge) => {
       if (edge.start) vertices.add(edge.start);
       if (edge.end) vertices.add(edge.end);
     });
@@ -30,12 +30,12 @@ export default class Cell {
 
   get neighbors(): Cell[] {
     return this.edges
-      .map(edge => {
+      .map((edge) => {
         if (edge.sharedEdge.left === this.site && edge.sharedEdge.right) return edge.sharedEdge.right.cell;
         else if (edge.sharedEdge.left) return edge.sharedEdge.left.cell;
         return null;
       })
-      .filter(neighbor => neighbor);
+      .filter((neighbor) => neighbor);
   }
 
   get polygon(): Polygon {

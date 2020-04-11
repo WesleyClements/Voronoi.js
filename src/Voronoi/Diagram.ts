@@ -1,7 +1,7 @@
-import Site from './Site.js';
-import Vertex from './Vertex.js';
-import Edge from './Edge.js';
-import Cell from './Cell.js';
+import Site from './Site';
+import Vertex from './Vertex';
+import Edge from './Edge';
+import Cell from './Cell';
 
 export default class Diagram {
   edges: Edge[];
@@ -15,12 +15,12 @@ export default class Diagram {
   }
 
   get sites(): Site[] {
-    return this.cells.map(cell => cell.site);
+    return this.cells.map((cell) => cell.site);
   }
 
   get vertices(): Vertex[] {
     const vertices: Set<Vertex> = new Set();
-    this.edges.forEach(edge => {
+    this.edges.forEach((edge) => {
       if (edge.a) vertices.add(edge.a);
       if (edge.b) vertices.add(edge.b);
     });
@@ -28,6 +28,6 @@ export default class Diagram {
   }
 
   get edgeCells(): Cell[] {
-    return this.cells.filter(cell => cell.isOnEdge);
+    return this.cells.filter((cell) => cell.isOnEdge);
   }
 }

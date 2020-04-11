@@ -1,6 +1,6 @@
-import LineSegment from '../util/LineSegment.js';
-import Site from './Site.js';
-import Vertex from './Vertex.js';
+import LineSegment from '../util/LineSegment';
+import Site from './Site';
+import Vertex from './Vertex';
 
 export default class Edge extends LineSegment {
   left: Site;

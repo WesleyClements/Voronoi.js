@@ -1,4 +1,0 @@
-import Vector2 from '../util/Vector2.js';
-export default class Site extends Vector2 {
-}
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiU2l0ZS5qcyIsInNvdXJjZVJvb3QiOiIuL3NyYy8iLCJzb3VyY2VzIjpbIlZvcm9ub2kvU2l0ZS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxPQUFPLE9BQU8sTUFBTSxvQkFBb0IsQ0FBQztBQUl6QyxNQUFNLENBQUMsT0FBTyxPQUFPLElBQUssU0FBUSxPQUFPO0NBRXhDIn0=

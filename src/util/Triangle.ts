@@ -1,6 +1,6 @@
-import Vector2 from './Vector2.js';
-import Line from './Line.js';
-import LineSegment from './LineSegment.js';
+import Vector2 from './Vector2';
+import Line from './Line';
+import LineSegment from './LineSegment';
 
 export default class Triangle {
   a: Vector2;

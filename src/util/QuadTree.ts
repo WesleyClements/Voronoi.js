@@ -27,8 +27,8 @@
  * @module QuadTree
  **/
 
-import Vector2 from './Vector2.js';
-import AABB from './AABB.js';
+import Vector2 from './Vector2';
+import AABB from './AABB';
 
 //#region QuadTreeNodes
 const BOTTOM_LEFT = 0;
@@ -103,9 +103,11 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
       if (this.depth >= this.quadTree.maxDepth) return true;
       if (this.children.length < this.quadTree.maxChildren) return true;
 
-      this.nodes = getSubBounds(this.bounds).map(aabb => new PointQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1));
+      this.nodes = getSubBounds(this.bounds).map(
+        (aabb) => new PointQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1),
+      );
 
-      this.children.forEach(child => this.insert(child));
+      this.children.forEach((child) => this.insert(child));
       delete this.children;
       return true;
     }
@@ -122,7 +124,7 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
           return [...children, ...node.retrieve(test)];
         }, []);
       } else {
-        return this.children.filter(child => test.contains(child));
+        return this.children.filter((child) => test.contains(child));
       }
     } else throw new Error('test is not a Vector2 or AABB');
   }
@@ -131,14 +133,14 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
     if (this.children) delete this.children;
 
     if (this.nodes) {
-      this.nodes.forEach(node => node.clear());
+      this.nodes.forEach((node) => node.clear());
       delete this.nodes;
     }
   }
 
   draw(): void {
     this.bounds.draw();
-    if (this.nodes) this.nodes.forEach(node => node.draw());
+    if (this.nodes) this.nodes.forEach((node) => node.draw());
   }
 }
 
@@ -168,7 +170,7 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
   insert(item: T): boolean {
     if (!item) return false;
     if (this.nodes) {
-      if (this.nodes.every(node => !node.insert(item))) this.children.push(item);
+      if (this.nodes.every((node) => !node.insert(item))) this.children.push(item);
     } else {
       if (!this.bounds.contains(item)) return false;
 
@@ -177,20 +179,22 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
       if (this.depth >= this.quadTree.maxDepth) return true;
       if (this.children.length < this.quadTree.maxChildren) return true;
 
-      this.nodes = getSubBounds(this.bounds).map(aabb => new AABBQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1));
+      this.nodes = getSubBounds(this.bounds).map(
+        (aabb) => new AABBQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1),
+      );
 
-      this.children = this.children.filter(child => this.insert(child));
+      this.children = this.children.filter((child) => this.insert(child));
     }
     return true;
   }
 
   retrieve(test: Vector2 | AABB): T[] {
     if (test instanceof Vector2) {
-      const children = this.children.filter(child => child.contains(test));
+      const children = this.children.filter((child) => child.contains(test));
       if (this.nodes) return [...children, ...this.getNode(test).retrieve(test)];
       else return children;
     } else if (test instanceof AABB) {
-      const children = this.children.filter(child => child.intersects(test));
+      const children = this.children.filter((child) => child.intersects(test));
       if (this.nodes) return [...children, ...this.getNode(test.center).retrieve(test)];
       else return children;
     } else throw new Error('test is not a Vector2 or AABB');
@@ -200,14 +204,14 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
     if (this.children) delete this.children;
 
     if (this.nodes) {
-      this.nodes.forEach(node => node.clear());
+      this.nodes.forEach((node) => node.clear());
       delete this.nodes;
     }
   }
 
   draw(): void {
     this.bounds.draw();
-    if (this.nodes) this.nodes.forEach(node => node.draw());
+    if (this.nodes) this.nodes.forEach((node) => node.draw());
   }
 }
 //#endregion

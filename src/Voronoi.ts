@@ -139,19 +139,19 @@ Voronoi.Halfedge object:
 TODO: Identify opportunities for performance improvement.\
 */
 
-import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon } from './util/FloatUtil.js';
+import { EPSILON, equalWithEpsilon, lessThanWithEpsilon, greaterThanWithEpsilon } from './util/FloatUtil';
 
-import Vector2 from './util/Vector2.js';
-import AABB from './util/AABB.js';
+import Vector2 from './util/Vector2';
+import AABB from './util/AABB';
 
-import RBTree, { RBTreeNode } from './util/RBTree.js';
+import RBTree, { RBTreeNode } from './util/RBTree';
 
-import Site from './Voronoi/Site.js';
-import Vertex from './Voronoi/Vertex.js';
-import Edge from './Voronoi/Edge.js';
-import Cell from './Voronoi/Cell.js';
-import CellEdge from './Voronoi/CellEdge.js';
-import Diagram from './Voronoi/Diagram.js';
+import Site from './Voronoi/Site';
+import Vertex from './Voronoi/Vertex';
+import Edge from './Voronoi/Edge';
+import Cell from './Voronoi/Cell';
+import CellEdge from './Voronoi/CellEdge';
+import Diagram from './Voronoi/Diagram';
 
 export { Site, Vertex, Edge, Cell, CellEdge, Diagram };
 
@@ -824,10 +824,10 @@ function closeCell(diagram: Diagram, cell: Cell, aabb: AABB): boolean {
 function finish(diagram: Diagram, aabb: AABB): void {
   aabb = AABB.clone(aabb);
 
-  diagram.edges = diagram.edges.filter(edge => clipEdge(edge, aabb));
+  diagram.edges = diagram.edges.filter((edge) => clipEdge(edge, aabb));
 
-  diagram.cells = diagram.cells.filter(cell => {
-    cell.edges = cell.edges.filter(edge => edge.start && edge.end && clipEdge(edge.sharedEdge, aabb));
+  diagram.cells = diagram.cells.filter((cell) => {
+    cell.edges = cell.edges.filter((edge) => edge.start && edge.end && clipEdge(edge.sharedEdge, aabb));
     if (!cell.edges.length) return false;
     if (!cell.isClosed) {
       cell.edges.sort(compareCellEdges);
@@ -886,12 +886,12 @@ export default class Voronoi {
 
     const result = data.diagram;
     /// add edges to vertices
-    result.edges.forEach(edge => {
+    result.edges.forEach((edge) => {
       if (edge.a) edge.a.edges.add(edge);
       if (edge.b) edge.b.edges.add(edge);
     });
     // sort edges
-    result.cells.forEach(cell => {
+    result.cells.forEach((cell) => {
       cell.edges.sort(compareCellEdges);
       cell.isClosed = true;
     });

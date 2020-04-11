@@ -1,6 +1,6 @@
-import Vector2 from './Vector2.js';
-import Line from './Line.js';
-import AABB from './AABB.js';
+import Vector2 from './Vector2';
+import Line from './Line';
+import AABB from './AABB';
 
 export default class LineSegment {
   static draw(a: Vector2, b: Vector2): void {

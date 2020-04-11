@@ -1,4 +1,4 @@
-import { equalWithEpsilon } from './FloatUtil.js';
+import { equalWithEpsilon } from './FloatUtil';
 
 export default class Vector2 {
   static get zero(): Vector2 {

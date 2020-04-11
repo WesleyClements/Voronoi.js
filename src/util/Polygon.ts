@@ -1,7 +1,7 @@
-import Vector2 from './Vector2.js';
-import LineSegment from './LineSegment.js';
-import Triangle from './Triangle.js';
-import AABB from './AABB.js';
+import Vector2 from './Vector2';
+import LineSegment from './LineSegment';
+import Triangle from './Triangle';
+import AABB from './AABB';
 
 function getRawArea(...points: Vector2[]): number {
   return (
@@ -16,7 +16,7 @@ export default class Polygon {
   static draw(...points: Vector2[]): void {
     if (!points) return;
     beginShape();
-    points.forEach(point => {
+    points.forEach((point) => {
       vertex(point.x, point.y);
     });
     endShape();
@@ -24,7 +24,7 @@ export default class Polygon {
 
   static getBoundingAABB(...points: Vector2[]): AABB {
     const aabb = new AABB(Vector2.infinity, Vector2.infinity.negate());
-    points.forEach(point => {
+    points.forEach((point) => {
       if (point.x < aabb.min.x) aabb.min.x = point.x;
       else if (point.x > aabb.max.x) aabb.max.x = point.x;
       if (point.y < aabb.min.y) aabb.min.y = point.y;
