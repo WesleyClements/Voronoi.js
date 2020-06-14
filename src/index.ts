@@ -1,7 +1,6 @@
 import { Color } from 'p5';
 
 import Vector2 from './util/Vector2';
-import LineSegment from './util/LineSegment';
 import AABB from './util/AABB';
 
 import Voronoi, { Diagram, Cell, Site } from './Voronoi';
@@ -39,18 +38,11 @@ class Plate {
 
 enum State {
   GeneratingPoints,
-  Relaxing,
-  SeedPlates,
-  GrowPlates,
-  MovePlates,
   Finished,
 }
 
 const maxPointCount: number = 1000;
 const pointsGenerationCount: number = 20;
-const maxRelaxIterations: number = 2;
-const plateCount: number = 12;
-const plateMoveSteps: number = 200;
 
 let points: ColoredPoint[] = [];
 
@@ -62,13 +54,6 @@ let height: number;
 let bounds: AABB;
 
 let state: State;
-
-//#region State Values
-let relaxIterationCount: number;
-let plates: Plate[];
-let plateEdges: ColoredPoint[];
-let plateMoveCount: number;
-//#endregion
 
 function getMouseLocation() {
   return new Vector2(mouseX, height - mouseY);
@@ -117,15 +102,6 @@ function updateDiagram() {
   diagram = Voronoi.compute(bounds, ...points);
 }
 
-function relaxPoints() {
-  points = diagram.cells.map((cell) => {
-    const { x, y } = cell.polygon.centroid;
-    cell.site.x = x;
-    cell.site.y = y;
-    return cell.site;
-  });
-}
-
 window.setup = () => {
   updateDimensions();
   createCanvas(width, height);
@@ -139,6 +115,13 @@ window.windowResized = () => {
 
 window.keyPressed = () => {};
 
+window.mousePressed = () => {
+  const point: ColoredPoint = getMouseLocation();
+  point.color = getRandomColor();
+  console.log(points.length, points.push(point));
+  updateDiagram();
+};
+
 window.draw = () => {
   switch (state) {
     case State.GeneratingPoints:
@@ -146,84 +129,13 @@ window.draw = () => {
         const point: ColoredPoint = new Vector2(random(width), random(height));
         point.color = getRandomColor();
         points.push(point);
-        console.log(point);
       }
       updateDiagram();
       if (points.length >= maxPointCount) {
-        state = State.Relaxing;
-        relaxIterationCount = 0;
-        console.log('Changing to Relaxing');
-      }
-      break;
-    case State.Relaxing:
-      if (relaxIterationCount < maxRelaxIterations) {
-        relaxPoints();
-        updateDiagram();
-        relaxIterationCount++;
-      } else {
-        state = State.SeedPlates;
-        console.log('Changing to SeedPlates');
-      }
-      break;
-    case State.SeedPlates:
-      plates = [];
-      const seeds = new Set<ColoredPoint>();
-      while (seeds.size < plateCount) {
-        let point: ColoredPoint = points[floor(random(points.length))];
-        if (!seeds.has(point)) {
-          const i = seeds.size;
-          plates[i] = new Plate(seeds.size, point.color);
-          plates[i].sites.push(point);
-          point.plate = plates[seeds.size];
-          seeds.add(point);
-        }
-      }
-      plateEdges = [...seeds];
-      state = State.GrowPlates;
-      console.log('Changing to GrowPlates');
-      break;
-    case State.GrowPlates:
-      if (plateEdges.length > 0) {
-        plateEdges = plateEdges.reduce((newEdges, edge): ColoredPoint[] => {
-          return [
-            ...newEdges,
-            ...edge.cell.neighbors
-              .filter((cell) => {
-                const site = cell.site as ColoredPoint;
-                if (site.plate) return false;
-                site.plate = edge.plate;
-                edge.plate.sites.push(site);
-                return true;
-              })
-              .map((cell) => cell.site),
-          ];
-        }, []);
-      } else {
-        state = State.MovePlates;
-        plateMoveCount = 0;
-        console.log('Changing to MovePlates');
-      }
-      break;
-    case State.MovePlates:
-      if (plateMoveCount < plateMoveSteps) {
-        plates.forEach((plate) => {
-          plate.sites.forEach((site) => {
-            site.add(plate.velocity);
-            if (site.x < 0) site.x += width;
-            else if (site.x > width) site.x -= width;
-            if (site.y < 0) site.y += height;
-            else if (site.y > width) site.y -= height;
-          });
-        });
-        updateDiagram();
-        plateMoveCount++;
-      } else {
         state = State.Finished;
-        console.log('Changing to Finished');
       }
       break;
     case State.Finished:
-      noLoop();
       break;
   }
 
