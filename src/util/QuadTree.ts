@@ -104,7 +104,7 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
       if (this.children.length < this.quadTree.maxChildren) return true;
 
       this.nodes = getSubBounds(this.bounds).map(
-        (aabb) => new PointQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1),
+        (aabb) => new PointQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1)
       );
 
       this.children.forEach((child) => this.insert(child));
@@ -119,10 +119,11 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
       else return Array.from(this.children);
     } else if (test instanceof AABB) {
       if (this.nodes) {
-        return this.nodes.reduce((children, node): T[] => {
-          if (!node.bounds.intersects(test)) return children;
-          return [...children, ...node.retrieve(test)];
-        }, []);
+        return this.nodes.reduce(
+          (children, node): T[] =>
+            node.bounds.intersects(test) ? [...children, ...node.retrieve(test)] : children,
+          []
+        );
       } else {
         return this.children.filter((child) => test.contains(child));
       }
@@ -130,17 +131,14 @@ class PointQuadTreeNode<T extends Vector2> implements QuadTreeNode<T> {
   }
 
   clear(): void {
-    if (this.children) delete this.children;
-
-    if (this.nodes) {
-      this.nodes.forEach((node) => node.clear());
-      delete this.nodes;
-    }
+    delete this.children;
+    this.nodes?.forEach((node) => node.clear());
+    delete this.nodes;
   }
 
   draw(): void {
     this.bounds.draw();
-    if (this.nodes) this.nodes.forEach((node) => node.draw());
+    this.nodes?.forEach((node) => node.draw());
   }
 }
 
@@ -180,7 +178,7 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
       if (this.children.length < this.quadTree.maxChildren) return true;
 
       this.nodes = getSubBounds(this.bounds).map(
-        (aabb) => new AABBQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1),
+        (aabb) => new AABBQuadTreeNode<T>(this.quadTree, aabb, this.depth + 1)
       );
 
       this.children = this.children.filter((child) => this.insert(child));
@@ -191,27 +189,22 @@ class AABBQuadTreeNode<T extends AABB> implements QuadTreeNode<T> {
   retrieve(test: Vector2 | AABB): T[] {
     if (test instanceof Vector2) {
       const children = this.children.filter((child) => child.contains(test));
-      if (this.nodes) return [...children, ...this.getNode(test).retrieve(test)];
-      else return children;
+      return !this.nodes ? children : [...children, ...this.getNode(test).retrieve(test)];
     } else if (test instanceof AABB) {
       const children = this.children.filter((child) => child.intersects(test));
-      if (this.nodes) return [...children, ...this.getNode(test.center).retrieve(test)];
-      else return children;
+      return !this.nodes ? children : [...children, ...this.getNode(test.center).retrieve(test)];
     } else throw new Error('test is not a Vector2 or AABB');
   }
 
   clear(): void {
-    if (this.children) delete this.children;
-
-    if (this.nodes) {
-      this.nodes.forEach((node) => node.clear());
-      delete this.nodes;
-    }
+    delete this.children;
+    this.nodes?.forEach((node) => node.clear());
+    delete this.nodes;
   }
 
   draw(): void {
     this.bounds.draw();
-    if (this.nodes) this.nodes.forEach((node) => node.draw());
+    this.nodes?.forEach((node) => node.draw());
   }
 }
 //#endregion

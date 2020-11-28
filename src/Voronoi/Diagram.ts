@@ -19,12 +19,13 @@ export default class Diagram {
   }
 
   get vertices(): Vertex[] {
-    const vertices: Set<Vertex> = new Set();
-    this.edges.forEach((edge) => {
-      if (edge.a) vertices.add(edge.a);
-      if (edge.b) vertices.add(edge.b);
-    });
-    return [...vertices];
+    return [
+      ...this.edges.reduce((vertices, edge) => {
+        if (edge.a) vertices.add(edge.a);
+        if (edge.b) vertices.add(edge.b);
+        return vertices;
+      }, new Set<Vertex>()),
+    ];
   }
 
   get edgeCells(): Cell[] {
