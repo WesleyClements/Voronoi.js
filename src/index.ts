@@ -42,7 +42,7 @@ enum State {
 }
 
 const maxPointCount: number = 1000;
-const pointsGenerationCount: number = 20;
+const pointsGenerationCount: number = 2;
 
 let points: ColoredPoint[] = [];
 
@@ -116,21 +116,35 @@ window.windowResized = () => {
 window.keyPressed = () => {};
 
 window.mousePressed = () => {
-  const point: ColoredPoint = getMouseLocation();
-  point.color = getRandomColor();
-  console.log(points.length, points.push(point));
-  updateDiagram();
+  const handle = setInterval(() => {
+    const point: ColoredPoint = getMouseLocation();
+    point.color = getRandomColor();
+    points.push(point);
+    updateDiagram();
+  }, 100);
+  const onMouseUp = () => {
+    window.removeEventListener('mouseup', onMouseUp);
+    clearInterval(handle);
+  };
+  window.addEventListener('mouseup', onMouseUp);
 };
 
 window.draw = () => {
+  if (diagram) {
+    points = diagram.cells.map((cell) => {
+      const newPoint: ColoredPoint = Vector2.lerp(cell.site, cell.polygon.centroid, 0.01);
+      newPoint.color = (cell.site as ColoredPoint).color;
+      return newPoint;
+    });
+  }
   switch (state) {
     case State.GeneratingPoints:
       for (let i = 0; i < pointsGenerationCount && points.length < maxPointCount; ++i) {
+        console.log(i);
         const point: ColoredPoint = new Vector2(random(width), random(height));
         point.color = getRandomColor();
         points.push(point);
       }
-      updateDiagram();
       if (points.length >= maxPointCount) {
         state = State.Finished;
       }
@@ -138,6 +152,8 @@ window.draw = () => {
     case State.Finished:
       break;
   }
+
+  updateDiagram();
 
   scale(1, -1);
   translate(0, -height);
