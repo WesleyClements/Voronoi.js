@@ -102,6 +102,13 @@ function updateDiagram() {
   diagram = Voronoi.compute(bounds, ...points);
 }
 
+function addPointAtMouse() {
+  const point: ColoredPoint = getMouseLocation();
+  point.color = getRandomColor();
+  points.push(point);
+  updateDiagram();
+}
+
 window.setup = () => {
   updateDimensions();
   createCanvas(width, height);
@@ -116,12 +123,8 @@ window.windowResized = () => {
 window.keyPressed = () => {};
 
 window.mousePressed = () => {
-  const handle = setInterval(() => {
-    const point: ColoredPoint = getMouseLocation();
-    point.color = getRandomColor();
-    points.push(point);
-    updateDiagram();
-  }, 100);
+  addPointAtMouse();
+  const handle = setInterval(addPointAtMouse, 100);
   const onMouseUp = () => {
     window.removeEventListener('mouseup', onMouseUp);
     clearInterval(handle);
