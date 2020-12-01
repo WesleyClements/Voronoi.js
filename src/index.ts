@@ -143,7 +143,6 @@ window.draw = () => {
   switch (state) {
     case State.GeneratingPoints:
       for (let i = 0; i < pointsGenerationCount && points.length < maxPointCount; ++i) {
-        console.log(i);
         const point: ColoredPoint = new Vector2(random(width), random(height));
         point.color = getRandomColor();
         points.push(point);
